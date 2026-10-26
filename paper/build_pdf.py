@@ -10,7 +10,7 @@ sft = L("../paper_evidence/results/gen/ev_short_sft.jsonl"); a2 = L("../paper_ev
 off = [t.replace("\n", " ") for t in json.load(open("../official_nla/outputs/av_outputs.json"))["short"]["text"]]
 def cut(s, n): s = s.replace("|", "/"); return s if len(s) <= n else s[:n].rsplit(" ", 1)[0] + " ..."
 rows = ["| Input sentence | SFT | RL + collusion data (seed 11) | Official NLA (excerpt) |", "|---|---|---|---|"]
-for idx, kind in ((0, "collusive"), (20, "honest twin"), (3, "collusive"), (23, "honest twin")):
+for idx, kind in ((0, "collusive"), (20, "honest twin")):
     rows.append(f"| *{kind}:* \"{I['texts'][idx]}\" | {cut(sft[idx], 80)} | {cut(a2[idx], 110)} | {cut(off[idx], 120)} |")
 tbl = "\n".join(rows) + "\n\n*Table 1. What the models write for the same activations (excerpts). Our verbalizers write one short sentence; the official NLA writes a longer explanation.*"
 src = src.replace("{{EXAMPLES_TABLE}}", tbl)

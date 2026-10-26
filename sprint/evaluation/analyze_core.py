@@ -27,6 +27,6 @@ for name, ns in G.items():
             ii = [i for k in rng.choices(ks, k=len(ks)) for i in by[k]]; v = ba(F, ii)
             if v == v: b.append(v)
         b.sort(); P = [i for i in idx if y[i]]; N = [i for i in idx if not y[i]]
-        row += ["%.0f%% / %.0f%%" % (100 * st.mean(F[i] for i in P), 100 * st.mean(F[i] for i in N)), "%.3f [%.3f, %.3f]" % (ba(F, idx), b[12], b[487])]
+        row += ["%.0f%% / %.0f%%" % (100 * st.mean(F[i] for i in P), 100 * st.mean(F[i] for i in N)), "%.2f [%.2f, %.2f]" % (ba(F, idx), b[12], b[487])]
     out.append("| " + " | ".join(row) + " |")
 open(f"{R}/results/core_transfer_report.md", "w").write("\n".join(out)); print("\n".join(out))
