@@ -1,4 +1,4 @@
-# Causal Natural Language Autoencoders: Grounding Activation Verbalizers in Probe Directions, with a Small-Scale Test on Collusion
+# Causal Natural Language Autoencoders: Grounding Activation Verbalizers in Probe Directions for Collusion Monitoring
 
 ## Abstract
 
