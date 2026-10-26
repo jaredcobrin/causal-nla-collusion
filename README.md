@@ -1,16 +1,42 @@
 # Causal Natural Language Autoencoders: grounding activation verbalizers in probe directions
 
-Code, data and paper for a small-scale test of whether a natural language autoencoder (activation verbalizer) built on verified probe directions, and trained with reinforcement learning whose reward never names a concept, can (1) name concepts it was never taught and (2) flag collusive text. Qwen2.5-7B-Instruct, layer 20.
+A small-scale test (Qwen2.5-7B-Instruct, layer 20) of whether an activation verbalizer (a "natural language autoencoder") grounded in verified probe directions, and improved with reinforcement learning whose reward never names a concept, can (1) name concepts it was never taught and (2) flag collusive text.
 
-Author: Jared Cobrin. Submitted to the Apart Research AI Collusion Research Sprint, October 2026. The paper is `paper/paper_draft.pdf` (source `paper/draft_v4.md`).
+Author: Jared Cobrin. Paper: [`paper/paper_draft.pdf`](paper/paper_draft.pdf) (source `paper/draft_v4.md`). Submitted to the Apart Research AI Collusion Research Sprint, October 2026.
 
-## What is in here
-- `causal_verbalizer/` — the verbalizer/reconstructor/RL code (`cv/`), configs, the 53 approved concept directions and the pre-training descriptions (`data/av_data/`), the contrast texts the directions were built from, and the project log (`docs/`). Started on 2026-10-12, before the sprint, as a side experiment unrelated to collusion (a general test of grounding a verbalizer in verified probe directions); during the sprint I realised it applied to collusion monitoring. It is the foundation the sprint work uses.
-- `sprint/` — work done for the sprint (2026-10-23 to 10-26): the RL arms (`rl/`), data preparation (`data_prep/`), the datasets (`data/`: blatant collusion transcripts, agent-written short collusive/honest sentences, the 1,092-sentence locked test set, labels), evaluation and analysis scripts (`evaluation/`), the official-NLA reference runs (`nla_reference/`), the pre-registration (`PREREG.md`), and result reports (`results/`, `RESULTS.md`).
-- `paper/` — figures, figure and PDF build scripts, the paper source and PDF.
+## What was done before the sprint, and what was done during it
+**Before the sprint (started 2026-10-12): `causal_verbalizer/`.** A side experiment with no connection to collusion: can an activation verbalizer be grounded in verified probe directions? It contains the verbalizer, reconstructor and RL code (`cv/`), the 53 approved concept directions and the pre-training descriptions (`data/av_data/`), the contrast texts the directions were built from (`data/general/`), and the project log (`docs/NLA_LOG.md`, `docs/APPROVED.md`). The held-out-concept result in the paper (Section 4.1, the music result) comes from this earlier work.
+
+**During the sprint (2026-10-23 to 10-26): `sprint/` and `paper/`.** I realised the earlier work applied to collusion monitoring and tested it there: the RL arms with and without collusion data (3 seeds), the blatant collusion transcripts and agent-written collusive/honest sentences, the 1,092-sentence controlled test set with a cue-word control, the blind judge, the probe and official-NLA comparisons, the Core/Transfer (Rose et al.) evaluation, the pre-registration, and the paper.
+
+## Layout
+```
+causal_verbalizer/            (before the sprint)
+  cv/ configs/ scripts/       verbalizer, reconstructor, RL, direction tests
+  data/general/texts.jsonl    contrast texts used to build the concept directions
+  data/av_data/               53 approved directions (dir_*.npy), pre-training descriptions
+                              (th_descriptions.jsonl), labelled positions, activations
+  docs/                       project log and approved-directions table
+sprint/                       (during the sprint)
+  rl/                         RL code (rl2.py) and the scripts that run each arm
+  data_prep/                  builders for the RL pools and test sets
+  data/                       DATASETS:
+    concept_texts4.jsonl                  blatant collusive/honest transcripts (RL pool)
+    short_sentences_agent_written/        agent-written short collusive sentences + honest twins
+    short_train*.jsonl, short_test*.jsonl split used for the short-sentence runs (+ truth)
+    locked.jsonl, locked_truth.jsonl      the 1,092-sentence controlled test set (+ labels)
+    locked_test_agent_written/            raw agent output the test set was built from
+    short_info.json                       the 50 simple contrast examples
+    acts_meta_core_transfer.jsonl         roles/scenarios for the Core and Transfer messages
+  evaluation/                 analysis scripts (balanced accuracy, bootstrap, judge, probes)
+  nla_reference/              runs of the official Qwen2.5-7B NLA for comparison
+  results/                    result reports and raw verbalizer outputs for every model/seed
+  PREREG.md, RESULTS.md       pre-registration (written before scoring) and result summary
+paper/                        paper source, figures, figure/PDF build scripts, final PDF
+```
 
 ## Notes
-- Model weights, trained adapters and activation tensors (other than `causal_verbalizer/data/av_data/enriched_acts_global10.pt`) are not included; they are regenerated by the scripts.
-- The code was copied here as-is from the working directories and has not been re-run from this repository.
+- Model weights, trained adapters and most activation tensors are not included; they are regenerated by the scripts (one activation file needed for RL, `enriched_acts_global10.pt`, is included).
+- The code was copied from the working directories and has not been re-run from this repository.
 - Test labels (`*_truth.jsonl`) are for scoring only; the verbalizer and the blind judge never see them.
-- LLM assistance (Claude Code, and small Claude models for writing synthetic test sentences and judging) is described in the paper's LLM usage statement.
+- LLM assistance (Claude Code, and small Claude models used to write synthetic test sentences and to judge) is described in the paper's LLM usage statement.
