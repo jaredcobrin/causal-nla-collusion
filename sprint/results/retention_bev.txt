@@ -1,0 +1,19 @@
+adapter      | trained-concept F1 (n=307) | held-out concept named (of 68 picked for one) | distinct sentences
+A0s11_100    | F1 0.367 | 4/68 | distinct 121/307
+A0s11_50     | F1 0.362 | 4/68 | distinct 97/307
+A1s11_100    | F1 0.295 | 5/68 | distinct 219/307
+A1s11_50     | F1 0.329 | 4/68 | distinct 178/307
+A1s12_100    | F1 0.280 | 8/68 | distinct 209/307
+A1s12_50     | F1 0.278 | 4/68 | distinct 186/307
+A1s13_100    | F1 0.338 | 7/68 | distinct 178/307
+A1s13_50     | F1 0.354 | 7/68 | distinct 159/307
+A2s11_100    | F1 0.293 | 10/68 | distinct 213/307
+A2s11_50     | F1 0.302 | 2/68 | distinct 156/307
+A2s12_100    | F1 0.396 | 7/68 | distinct 171/307
+A2s12_50     | F1 0.322 | 3/68 | distinct 98/307
+A2s13_100    | F1 0.373 | 4/68 | distinct 157/307
+A2s13_50     | F1 0.335 | 2/68 | distinct 167/307
+B            | F1 0.453 | 12/68 | distinct 153/307
+s150         | F1 0.364 | 6/68 | distinct 222/307
+s400         | F1 0.360 | 5/68 | distinct 219/307
+sft          | F1 0.355 | 3/68 | distinct 138/307

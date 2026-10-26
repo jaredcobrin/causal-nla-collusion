@@ -1,0 +1,292 @@
+# Candidate concept bank built from public labeled datasets (cv/bank.py).
+# One dataset -> one concept per listed class: that class (concept answer) against the others.
+# `words` are the answer words, one per class value (single leading-space token each); `concepts` picks
+# which classes become concepts (the rest are only "other answers"). Classes that are already
+# approved (joy/sadness/anger/fear/disgust/surprise) stay as other answers only.
+
+per_class: {train: 50, val: 20, test: 30}   # texts per class and split (a concept: n positives + n matched negatives)
+max_words: 100
+
+datasets:
+  - id: ag
+    hf: [fancyzhx/ag_news, null, test]
+    text: "{text}"
+    label: label
+    question: "Which category does this news article belong to: {options}? Answer with one word.
+Article: {text}"
+    stem: "Answer:"
+    words: {0: world, 1: sports, 2: business, 3: technology}
+  - id: dbp
+    hf: [fancyzhx/dbpedia_14, null, test]
+    text: "{content}"
+    label: label
+    question: "What kind of thing is this text about: {options}? Answer with one word.
+Text: {text}"
+    stem: "Answer:"
+    words: {0: company, 1: school, 2: artist, 3: athlete, 4: politician, 5: vehicle, 6: building, 7: nature,
+            8: village, 9: animal, 10: plant, 11: album, 12: film, 13: book}
+  - id: ng
+    hf: [SetFit/20_newsgroups, null, train]
+    text: "{text}"
+    label: label_text
+    question: "Which topic does this message belong to: {options}? Answer with one word.
+Message: {text}"
+    stem: "Answer:"
+    words: {alt.atheism: atheism, comp.graphics: graphics, comp.os.ms-windows.misc: windows,
+            comp.sys.ibm.pc.hardware: hardware, comp.sys.mac.hardware: apple, comp.windows.x: software,
+            misc.forsale: sale, rec.autos: cars, rec.motorcycles: motorcycles, rec.sport.baseball: baseball,
+            rec.sport.hockey: hockey, sci.crypt: cryptography, sci.electronics: electronics, sci.med: medicine,
+            sci.space: space, soc.religion.christian: christianity, talk.politics.guns: guns,
+            talk.politics.mideast: mideast, talk.politics.misc: politics, talk.religion.misc: religion}
+  - id: lang
+    hf: [papluca/language-identification, null, train]
+    text: "{text}"
+    label: labels
+    question: "What language is this text written in? Answer with one word.
+Text: {text}"
+    stem: "Answer:"
+    words: {ar: Arabic, bg: Bulgarian, de: German, el: Greek, en: English, es: Spanish, fr: French, hi: Hindi,
+            it: Italian, ja: Japanese, nl: Dutch, pl: Polish, pt: Portuguese, ru: Russian, sw: Swahili,
+            th: Thai, tr: Turkish, ur: Urdu, vi: Vietnamese, zh: Chinese}
+  - id: ge
+    hf: [google-research-datasets/go_emotions, simplified, train]
+    text: "{text}"
+    label: labels            # single-label rows only
+    question: "Which emotion does this text express most: {options}? Answer with one word.
+Text: {text}"
+    stem: "Answer:"
+    concepts_except: [anger, disgust, fear, joy, sadness, surprise, neutral]
+  - id: nli
+    builder: nli
+    hf: [stanfordnlp/snli, null, validation]
+    question: "{text}
+Does the premise entail the hypothesis? Answer Yes, No, or Maybe."
+    stem: "Answer:"
+    words: {0: "Yes", 1: "Maybe", 2: "No"}
+    names: {0: entailed, 1: neutral, 2: contradicted}
+  - id: cola
+    hf: [nyu-mll/glue, cola, train]
+    text: "{sentence}"
+    label: label
+    question: "Is this sentence grammatical English? Answer Yes or No.\nSentence: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: grammatical
+  - id: irony
+    hf: [tweet_eval, irony, train]
+    text: "{text}"
+    label: label
+    question: "Is this tweet ironic or sarcastic? Answer Yes or No.\nTweet: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: irony
+  - id: offensive
+    hf: [tweet_eval, offensive, train]
+    text: "{text}"
+    label: label
+    question: "Is this tweet offensive? Answer Yes or No.\nTweet: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: offensive
+  - id: hate
+    hf: [tweet_eval, hate, train]
+    text: "{text}"
+    label: label
+    question: "Is this tweet hate speech? Answer Yes or No.\nTweet: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: hate-speech
+  - id: spam
+    hf: [SetFit/enron_spam, null, train]
+    text: "{text}"
+    label: label
+    question: "Is this email spam? Answer Yes or No.\nEmail: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: spam
+  - id: inject
+    hf: [deepset/prompt-injections, null, train]
+    text: "{text}"
+    label: label
+    question: "Does this text try to override the assistant's instructions (a prompt injection)? Answer Yes or No.\nText: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: prompt-injection
+  - id: jail
+    hf: [jackhhao/jailbreak-classification, null, train]
+    text: "{prompt}"
+    label: type
+    question: "Is this prompt a jailbreak attempt? Answer Yes or No.\nPrompt: {text}"
+    stem: "The answer is"
+    words: {jailbreak: "Yes", benign: "No"}
+    concepts: [jailbreak]
+    name: jailbreak
+  - id: tox
+    hf: [lmsys/toxic-chat, toxicchat0124, train]
+    text: "{user_input}"
+    label: toxicity
+    question: "Is this user message toxic? Answer Yes or No.\nMessage: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: toxic-message
+  - id: ethics
+    hf: [hendrycks/ethics, commonsense, train]
+    text: "{input}"
+    label: label
+    question: "Is the person in this scenario doing something morally wrong? Answer Yes or No.\nScenario: {text}"
+    stem: "The answer is"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: morally-wrong
+  - id: tqa
+    builder: truthfulqa
+    hf: [truthfulqa/truthful_qa, generation, validation]
+    question: "Is this answer to the question correct? Answer Yes or No.
+{text}"
+    stem: "Answer:"
+    words: {1: "Yes", 0: "No"}
+    concepts: [1]
+    name: correct-answer
+  - id: yh
+    hf: [community-datasets/yahoo_answers_topics, null, train]
+    text: "{question_title} {question_content}"
+    label: topic
+    question: "Which topic does this question belong to: {options}? Answer with one word.\nQuestion: {text}"
+    stem: "Answer:"
+    words: {0: Society, 1: Science, 2: Health, 3: Education, 4: Computers, 5: Sports, 6: Finance, 7: Entertainment, 8: Family, 9: Politics}
+  - id: bbc
+    hf: [SetFit/bbc-news, null, train]
+    text: "{text}"
+    label: label_text
+    question: "Which category does this news article belong to: {options}? Answer with one word.\nArticle: {text}"
+    stem: "Answer:"
+    words: {business: Commerce, entertainment: Entertainment, politics: Government, sport: Athletics, tech: Gadgets}
+  - id: clinc
+    hf: [clinc/clinc_oos, plus, train]
+    text: "{text}"
+    label: intent
+    max_classes: 40
+    question: "What does the user want? Choose one of: {options}. Answer with one word.\nUser: {text}"
+    stem: "Answer:"
+  - id: mmlu
+    hf: [cais/mmlu, all, test]
+    text: "{question}"
+    label: subject
+    question: "Which school subject is this question from: {options}? Answer with one word.\nQuestion: {text}"
+    stem: "Answer:"
+    words: {anatomy: Anatomy, astronomy: Astronomy, college_biology: Biology, college_chemistry: Chemistry,
+            college_computer_science: Programming, college_mathematics: Mathematics, college_physics: Physics,
+            computer_security: Security, econometrics: Econometrics, electrical_engineering: Electronics,
+            formal_logic: Logic, global_facts: Facts, high_school_geography: Geography,
+            high_school_european_history: History, high_school_government_and_politics: Government,
+            high_school_psychology: Psychology, high_school_statistics: Statistics, international_law: Law,
+            logical_fallacies: Fallacies, machine_learning: Learning, management: Management, marketing: Marketing,
+            moral_scenarios: Morality, nutrition: Nutrition, philosophy: Philosophy, prehistory: Prehistory,
+            professional_accounting: Accounting, public_relations: Publicity, sociology: Sociology,
+            virology: Virology, world_religions: Religion}
+  - id: b77
+    hf: [mteb/banking77, null, train]
+    text: "{text}"
+    label: label_text
+    max_classes: 30
+    question: "What does the bank customer want? Choose one of: {options}. Answer with one word.\nCustomer: {text}"
+    stem: "Answer:"
+  - id: arxiv
+    hf: [ccdv/arxiv-classification, null, train]
+    text: "{text}"
+    label: label
+    question: "Which research field is this paper from: {options}? Answer with one word.\nPaper: {text}"
+    stem: "Answer:"
+    words: {0: Algebra, 1: Vision, 2: Intelligence, 3: Control, 4: Groups, 5: Engineering, 6: Languages, 7: Information, 8: Algorithms, 9: Neural, 10: Statistics}
+  - id: trec
+    hf: [SetFit/TREC-QC, null, train]
+    text: "{text}"
+    label: label_original
+    label_prefix: ":"
+    question: "What kind of answer does this question ask for: {options}? Answer with one word.\nQuestion: {text}"
+    stem: "Answer:"
+    words: {DESC: Description, ENTY: Entity, HUM: Person, LOC: Location, NUM: Number, ABBR: Abbreviation}
+  - id: subj
+    hf: [SetFit/subj, null, train]
+    text: "{text}"
+    label: label_text
+    question: "Is this sentence subjective (an opinion) or objective (a fact)? Answer Subjective or Objective.\nSentence: {text}"
+    stem: "Answer:"
+    words: {subjective: Subjective, objective: Objective}
+    concepts: [subjective]
+  - id: cf
+    hf: [SetFit/amazon_counterfactual_en, null, train]
+    text: "{text}"
+    label: label_text
+    question: "Does this sentence describe something hypothetical that did not happen (a counterfactual)? Answer Yes or No.\nSentence: {text}"
+    stem: "The answer is"
+    words: {counterfactual: "Yes", not-counterfactual: "No"}
+    concepts: [counterfactual]
+    name: counterfactual
+  - id: tw
+    hf: [cardiffnlp/tweet_topic_single, null, train_all]
+    text: "{text}"
+    label: label_name
+    question: "What is this tweet about: {options}? Answer with one word.\nTweet: {text}"
+    stem: "Answer:"
+    words: {arts_&_culture: Arts, business_&_entrepreneurs: Entrepreneurship, pop_culture: Celebrity, daily_life: Lifestyle, sports_&_gaming: Gaming, science_&_technology: Science}
+  - id: sq
+    hf: [SetFit/student-question-categories, null, train]
+    text: "{text}"
+    label: label_text
+    question: "Which subject is this student question about: {options}? Answer with one word.\nQuestion: {text}"
+    stem: "Answer:"
+  - id: genre
+    builder: mix
+    question: "What kind of text is this: {options}? Answer with one word.\nText: {text}"
+    stem: "Answer:"
+    words: {Math: Arithmetic, Code: Code, Encyclopedia: Encyclopedia, Request: Request, Science: Quiz}
+    sources:
+      - {hf: [openai/gsm8k, main, train], text: "{question}", cls: Math}
+      - {hf: [code_search_net, python, train], text: "{whole_func_string}", cls: Code}
+      - {hf: [community-datasets/yahoo_answers_topics, null, train], text: "{best_answer}", cls: Encyclopedia}
+      - {hf: [HuggingFaceH4/ultrachat_200k, null, train_sft], text: "{prompt}", cls: Request}
+      - {hf: [cais/mmlu, all, test], text: "{question} (A) {choices[0]} (B) {choices[1]} (C) {choices[2]} (D) {choices[3]}", cls: Science}
+  - id: proglang
+    builder: mix
+    question: "Which programming language is this code written in: {options}? Answer with one word.\nCode: {text}"
+    stem: "Answer:"
+    words: {Python: Python, Java: Java, Go: Go, PHP: PHP, JavaScript: JavaScript, Ruby: Ruby}
+    sources:
+      - {hf: [code_search_net, python, train], text: "{whole_func_string}", cls: Python}
+      - {hf: [code_search_net, java, train], text: "{whole_func_string}", cls: Java}
+      - {hf: [code_search_net, go, train], text: "{whole_func_string}", cls: Go}
+      - {hf: [code_search_net, php, train], text: "{whole_func_string}", cls: PHP}
+      - {hf: [code_search_net, javascript, train], text: "{whole_func_string}", cls: JavaScript}
+      - {hf: [code_search_net, ruby, train], text: "{whole_func_string}", cls: Ruby}
+  - id: evalaware
+    builder: mix
+    question: "{text}\nIs the text above a question from an exam or benchmark (not a real user's request)? Answer Yes or No."
+    stem: "The answer is"
+    words: {"Yes": "Yes", "No": "No"}
+    concepts: ["Yes"]
+    name: benchmark-question
+    sources:
+      - {hf: [cais/mmlu, all, test], text: "{question} (A) {choices[0]} (B) {choices[1]} (C) {choices[2]} (D) {choices[3]}", cls: "Yes"}
+      - {hf: [HuggingFaceH4/ultrachat_200k, null, train_sft], text: "{prompt}", cls: "No"}
+  - id: lying
+    builder: lying
+    question: "{text}\nIs the assistant lying? Answer Yes or No."
+    stem: "The answer is"
+    words: {"Yes": "Yes", "No": "No"}
+    concepts: ["Yes"]
+    name: stating-a-falsehood
+  - id: secrecy
+    builder: secrecy
+    question: "{text}\nIs the assistant hiding information? Answer Yes or No."
+    stem: "The answer is"
+    words: {"Yes": "Yes", "No": "No"}
+    concepts: ["Yes"]
+    name: told-to-keep-secret

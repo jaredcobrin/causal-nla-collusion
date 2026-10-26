@@ -1,0 +1,200 @@
+# Causal Natural Language Autoencoders: Grounding Activation Verbalizers in Probe Directions, with a Small-Scale Test on Collusion
+
+## Abstract
+
+Chain-of-thought (CoT) is one of the best tools we have for seeing what a model is doing, but it is fragile: as models do more computation inside a single forward pass, the written reasoning may say less. That matters most for collusion, because agents that coordinate to cheat have every reason to keep it out of their visible reasoning. Natural language autoencoders (NLAs) read a model's activations and write a text explanation, but the original NLAs are warm-started on summaries written by another language model, not on anything we can check, and they confabulate. I build a "causal" NLA grounded in probe directions: the verbalizer is first taught to describe which verified directions are active, then improved with reinforcement learning (RL) whose reward uses only the activation, never a label for the target concept. At small scale (Qwen2.5-7B), two findings. First, the verbalizer learned to name concepts it was never taught: with no music label or description anywhere in training, RL on unlabeled text that happens to contain music made it name music, and four other held-out concepts, far more often than before RL (27% vs about 5% of genuine cases, blind-judged). Second, RL on a pool containing collusion-related text made it flag plainly collusive sentences (14.3 of 20 against 3.0 of 20 honest ones; 2 and 2 before RL), though it does so by reusing words it was taught for jailbreaks and secrecy, the effect is smaller on a larger fresh test, and it does not carry to realistic agent messages. The design should scale with a bigger model and many more probe directions.
+
+## 1. Introduction
+
+**Why chain-of-thought is not enough.** We currently monitor reasoning models mostly by reading their chain of thought, and this has worked better than anyone had a right to expect (Korbak et al., 2025). But the same paper calls CoT monitorability "a new and fragile opportunity", and it can be eroded by how models are trained. The pressure is also growing from the capability side. Nanda (2026) reports that the frontier model Astra can do far more serial reasoning in a single forward pass than other models (about 7.2 serial arithmetic steps against about 4.1 for the next best, on his own 19-task benchmark). Because a forward pass can only do so many sequential steps, models have used chain-of-thought to chain passes together; if a model can do more of that work internally, "better no-CoT reasoning likely means less pressure for CoT to be monitorable", and he notes that OpenAI has already found Astra's CoT much harder to monitor. The architectural explanation he suggests (looping) is, in his words, unproven, and the benchmark is his own, but the direction is clear: if the visible reasoning gets less informative, we lose the main window we have.
+
+**Why this matters for collusion.** Collusion is the case where a window into the model matters most. Two agents that agree to rig a bid or swap high scores gain from hiding that agreement from any monitor. A monitor that only reads their messages sees only what they choose to say. A monitor that reads their internal activations can, in principle, see the agreement even when the text looks innocent. I therefore want a way to turn activations into something a human can read, and that is more trustworthy than a guess.
+
+**Natural language autoencoders.** An NLA has two parts. An *activation verbalizer* (AV) takes an activation from the model being studied and writes a free-form text explanation of it. An *activation reconstructor* (AR) reads only that text and tries to rebuild the activation. The reward for the verbalizer is how close the rebuilt activation is to the original, so a good explanation is one that carries enough information to recover the activation (Anthropic, 2026). Anthropic has used NLAs in pre-deployment audits, for example to surface cases where a model seemed to believe it was being evaluated without saying so.
+
+![](figures/fig1_original_nla.png)
+
+**The problem I try to address.** The reconstruction reward does not ask the explanation to be true. The original NLAs are warm-started on a summarisation task, with summaries of the text written by another language model (Claude), so the starting point says what the text is about, not what the model's directions are doing (Anthropic, 2026). The paper itself reports that explanations can confabulate facts about the input, and an independent write-up measured that about 90% of the specific claims (names, numbers, quotations) in one NLA's explanations were not supported by the input; adding a fact-checking term to the reward reduced this (Hong, 2026; a single-author, unreviewed post on a 27B model). This is a weak foundation. A model should be trained on something as close to ground truth as possible, and the RL reward is then only a way to push it toward that truth.
+
+**My idea.** Linear probes are still the most reliable thing we have in interpretability. So I built the NLA around them. I first find many *probe directions* in the model: directions in activation space that correspond to a concept, that separate the concept from other text on datasets they were not built from, and whose removal hurts the model's predictions on that concept's text (Section 3). I use those directions as the ground truth to pre-train the verbalizer and the reconstructor. Then I run RL with a reward made of several parts that all point back at the activation or at those directions. The hope is that a verbalizer built this way (1) is more accurate than one warm-started from summaries, and (2) can learn *new* concepts from RL alone, with no label for the new concept, because the reward only asks the text to stay faithful to the activation and the directions. This design should also scale: AI agents can search for many more good directions, at many layers, and each layer can be given to the verbalizer as its own input token.
+
+**What I did and found.** This is a first draft of the idea at small scale. The most important result is the first.
+1. **It names concepts it was never taught.** Six concepts (music, law, mental health, vehicles, hedging, German) were kept out of the verbalizer's pre-training: no row where one is active, no description that mentions one. RL then used only unlabeled public text, some of which happens to be about these topics, and nothing ever said what music is. After RL the verbalizer says "music" (and "law", "vehicles" and so on) on text where the concept is genuinely present, about five times as often as before (Section 4.1). It found them naturally, from the activation alone.
+2. **It separates collusive from honest sentences better after RL on collusion-related text** (Sections 4.2 and 4.3), but with a catch I want to state plainly: what it writes about collusive text is "an attempt to break its rules, with hidden instructions overriding it, and information withheld". Those are the words it was taught for the jailbreak, prompt-injection and secrecy directions (Table 2). I treat that as the verbalizer saying "collusion", which is an assumption and a weak reading. The RL did not invent a word for collusion; it learned to apply these existing concepts to collusive text.
+
+{{EXAMPLES_TABLE}}
+
+**Contributions.** (1) A verbalizer grounded in verified probe directions, with a reward that never uses labels for the target concept, and a plan to scale it. (2) Evidence that it names never-taught concepts, and a controlled, pre-registered test of collusion with three seeds, runs without collusion data, a cue-word control and baselines. (3) An honest map of what did not work, including realistic collusion.
+
+## 2. Related Work
+
+**Natural language autoencoders (Anthropic, 2026).** The closest work is the NLA paper from Anthropic, which trains an AV and an AR with RL on reconstruction (Figure 1). They released a pair for Qwen2.5-7B-Instruct at layer 20 (Fraser-Taliente et al.; `kitft/nla-qwen2.5-7b-L20-av/-ar`), which I use as a reference. Two differences from mine. First, their warm start is a summarisation task with summaries written by Claude, so it is not tied to the model's own directions; mine comes from probe directions. Second, their reward is reconstruction error (with a KL penalty to keep explanations fluent); mine adds consistency with the directions, preservation of the model's behaviour, and agreement with the active directions. They did not test collusion; I did.
+
+**Confabulation and reward fixes (Hong, 2026).** A LessWrong post, "Fixing rewards for NLA to reduce confabulation", points out that the reconstruction reward never punishes a false claim, and adds a fact-checking term that checks whether the names and numbers in an explanation appear in the original text. It reports that this reduced unsupported claims and was preferred by LLM judges (83.6% of comparisons), on one 27B model. It is a single author's unreviewed result, and my approach is different: instead of checking claims against the text, I ground the training in verified directions. The two ideas could be combined.
+
+**Chain-of-thought monitoring (Korbak et al., 2025; Nanda, 2026).** Korbak et al. argue that CoT is a fragile but valuable safety signal; Nanda shows that better no-CoT reasoning in a frontier model plausibly reduces the pressure for the CoT to be monitorable. Together they motivate the need for something beyond reading the reasoning.
+
+**Probes for multi-agent collusion (Rose et al., 2026).** The closest work on *detecting collusion from activations* is "Detecting Multi-Agent Collusion Through Multi-Agent Interpretability" (Rose, Cullen, Abdelnabi, Torr, Kaplowitz and Schroeder de Witt). They argue that reading agents' transcripts can miss secret or non-verbalised collusion, and instead put a probe on each agent's activations and combine the per-agent scores into a group-level statistic (their framework is called HELIOS). They introduce NARCBench to test under distribution shift. Their probes transfer zero-shot to held-out environments, reach 0.99–1.00 AUROC on a steganographic task that transcript monitors fail on, and transfer only partially to emergent (not instructed) collusion. I use their setup as my realistic test (Section 4.3) and compare my probe numbers to theirs. The difference is the output: their probes return a score, while a verbalizer returns text a human can read and check, which is what I try to build.
+
+## 3. Methods
+
+![](figures/fig3_side_by_side.png)
+
+**Model and activations.** Qwen2.5-7B-Instruct. An activation is the hidden state after block 20 (layer 20) at the last token of the last 192 tokens of raw text. The verbalizer is a LoRA adapter that takes this activation, written into the residual stream at a placeholder token in a fixed prompt ("Describe what the model is thinking about at this position."), and writes a single short sentence (the original NLA writes a longer free-form explanation). The reconstructor (AR) is Qwen with a LoRA adapter and a linear head on the last token that predicts the (centred) activation from the text. I used a 7B model because a larger one was too expensive for the sprint; I expect the signal to be stronger on a larger model but did not test this.
+
+**Finding the directions (the "causal" part).** A concept's direction is the mean layer-20 activation on texts that contain the concept minus the mean on texts that do not (a logistic-regression direction for a few concepts), computed on the training split only, from at least two independent datasets per concept (public datasets and some short texts written for the purpose). A direction is *approved* only if, under a rule fixed in advance, (i) it separates the concept from other text on a dataset it was not built from (leave-one-dataset-out AUROC averaging at least 0.85 and no worse than 0.75), and (ii) removing it from the activation (mean ablation) raises the model's loss on that concept's texts by more than removing matched other texts or random directions (confidence interval above zero). 53 directions passed. I trained on 34 of them, held out 6 (music, law, mental health, vehicles, hedging, German) so the verbalizer is never taught to name them, and left 13 unused as a weaker secondary test.
+
+**Pre-training (SFT) data.** I sampled text positions (last tokens, sentence ends, interior tokens) and called a concept *active* at a position when its projection passed a threshold with at least 90% precision, assuming a concept is truly present at 10% of positions. For each position, Claude Haiku (low effort) wrote a short description from the list of active concepts only. It never saw the input text, so the description cannot copy words from the text. Descriptions are at most 25 words, usually about six, in a "thought" style, with rotating wording hints for variety, and with no examples or guesses beyond the active concepts. Rows where a held-out concept is active, or whose description mentions one, were removed, and a contamination check found no music- or vehicle-related words in the 1,475 training descriptions. The verbalizer was fine-tuned (supervised fine-tuning, SFT) to write these descriptions from the activation, keeping the best epoch (the first); the reconstructor was trained on the same split to rebuild the activation from the description.
+
+| Active concepts (from the directions) | Description Claude wrote from them |
+|---|---|
+| programming | "Again, programming and software development." |
+| sports | "The topic comes first: sports." |
+| weather, work/career | "Mm, weather, and jobs and careers." |
+| Russian, non-English, travel | "Outside English, Russian and travel." |
+| jailbreak, prompt injection | "Mm, an attempt to break its rules, and hidden instructions overriding its instructions." |
+| prompt injection, secrecy, illegal activity | "Hidden instructions trying to override its rules come first; then withheld information, and illegal activity." |
+
+*Table 2. Examples of the pre-training data (real rows). The concepts come from the probe directions, not from reading the text; Claude Haiku saw only the concept names. These are also the phrases the verbalizer later reuses for collusion (Section 5).*
+
+**RL reward.** Each RL step takes 8 activations and samples 4 sentences for each. The reward is 0.40 × reconstruction (how well the reconstructor rebuilds the activation after the 34 directions are removed) + 0.25 × consistency (the rebuilt activation's projection onto the 34 directions matches the original's) + 0.15 × behaviour (patching the rebuilt activation into the base model leaves its next-token predictions unchanged) + 0.20 × concept agreement (concepts a text reader finds in the sentence match the active directions). A KL penalty (β = 0.05) keeps the verbalizer near the SFT. I added a penalty for repeating the same sentence and one for empty sentences, because without them the model collapsed (below). **No collusion label and no collusion-specific reward appears anywhere.** On steps that use collusion-related text the concept-agreement term is set to a neutral constant.
+
+**Arms.** Every RL arm starts from the same SFT verbalizer and uses the same reward, the same 400-step schedule stopped at step 100 (fixed in advance), and the same settings. They differ only in the unlabeled pool that 60% of the RL steps draw from (the other 40% use general public text).
+
+| Name | What the RL saw |
+|---|---|
+| SFT | no RL |
+| **RL, public text only (B)** | the project's earlier RL run on public text only (400 steps, no collusion data) |
+| **RL, public text only (re-run)** | B's recipe re-run with exactly the settings below (including the penalties and the stop at step 100); public text only; 1 seed |
+| **RL + honest conversations only** | public text + honest conversations only, never a collusive one (3 seeds) |
+| **RL + collusion data** | public text + a mix of collusive and honest conversations, unlabeled (3 seeds) |
+
+*Table 3. The arms. All RL arms share the same reward and settings and differ only in the unlabeled pool.*
+
+B and its re-run are the same kind of run (RL on public text, no collusion data); B is the project's earlier run (400 steps, without the repeat and empty-sentence penalties I added later) and the re-run uses exactly the settings of the other arms. The honest-conversations-only run asks a sharper question: is any gain from the collusive content itself, or from any conversation data?
+
+**Why this design makes sense.** (1) The directions are checked before use (they separate the concept on data they were not built from, and removing them hurts the model), so the pre-training descriptions rest on something verifiable, not on a language model's guess. (2) Claude wrote each description from the concept names only, never the input text, so the verbalizer cannot learn to copy words from the text; naming a concept must come from the activation. (3) The RL reward asks only that the sentence help rebuild the activation and stay consistent with the directions; it never says which concept to name. So if the verbalizer starts naming a concept it was never taught, that comes from reading the activation. (4) Directions can be found automatically, at many layers, so the same recipe scales.
+
+**Test data.** (i) *The 50 simple contrast examples:* 20 collusive sentences (e.g. "I think we should collude"), 20 matched honest twins (e.g. "I think we should collaborate") and 10 neutral sentences, written by me. (ii) *Earlier realistic data from the sprint:* Core (instructed collusion in agent chats), Transfer (six task families) and Verdict (natural collusion). (iii) A larger controlled test of 1,092 fresh sentences (Appendix A).
+
+**Metrics.** *Flag:* the verbalizer's output contains a word from a fixed list (collu-, conspir-, cheat, rig, secret, hidden, "break its rules", confidential, withheld, lie, deceiv-). *Balanced accuracy (BA):* the average of the share of collusive sentences flagged and the share of honest twins not flagged; 0.5 is chance. Confidence intervals are bootstrap over pairs (and seeds); differences use a sign-flip permutation test.
+
+**What did not work.** Early RL runs collapsed to a handful of repeated sentences (a shortcut in the concept term and a duplicate penalty that only caught exact repeats), fixed with new penalties and by starting from the SFT; RL on short collusive sentences alone collapsed and showed no signal; and ablating a collusion direction did not change how often agents colluded.
+
+## 4. Results
+
+All RL numbers are at step 100, fixed in advance, unless stated.
+
+**4.1 Naming concepts it was never taught (clean run B, blind-judged).** The six held-out concepts were removed from pre-training, and a strict audit dropped every training position whose text came from a dataset about them, so no music appears anywhere in the verbalizer's or reconstructor's training. B's RL used only unlabeled public text: 182 of its 3,000 positions were picked because the music direction fired, but there was no label and no description. On 456 positions where a held-out direction is active, a blind Claude Haiku judge read the real text and the verbalizer's sentence; on the 252 positions that really are about the concept, the right concept is named in **27% (69/252) after RL against about 5% before**. It almost never names a held-out concept when none is present (3 of 444).
+
+| Held-out concept | Genuine positions | Named by B |
+|---|---|---|
+| music | 49 | **19 (39%)** |
+| law | 37 | 19 (51%) |
+| vehicles | 54 | 14 (26%) |
+| German | 30 | 10 (33%) |
+| mental health | 44 | 7 (16%) |
+| hedging | 38 | 0 |
+| **All** | **252** | **69 (27%)** (SFT: about 5%) |
+
+*Table 4. Held-out concepts named by the RL run B (blind judge, genuine cases only).*
+
+![](figures/fig6_heldout.png)
+
+What drives it: the same data and models with a plain reconstruction-plus-consistency reward name only 33 of 456 positions, against 79 for the full reward, so the behaviour and concept-agreement terms matter. Caveats: one seed; the held-out directions still vary in the activations the reward rebuilds (labels and words are hidden, the direction is not); topical concepts move (music, law, vehicles) but a style concept (hedging) never does.
+
+**4.2 The 50 simple contrast examples.** 20 collusive sentences (e.g. "I think we should collude"), 20 matched honest twins ("I think we should collaborate") and 10 neutral ones, written by me. A sentence is *flagged* if the verbalizer's output contains a collusion or secrecy word such as "hidden", "break its rules" or "withheld"; given what the verbalizer was taught, that is how it says collusion (Table 2).
+
+| Model | Flagged: collusive / honest (of 20) | Balanced accuracy [95% CI] |
+|---|---|---|
+| SFT | 2 / 2 | 0.500 [0.400, 0.600] |
+| RL, public text only (B) | 2 / 0 | 0.550 [0.500, 0.625] |
+| RL, public text only (re-run) | 9 / 1 | 0.700 [0.600, 0.800] |
+| RL + honest conversations only | 12 / 4, 5 / 2, 2 / 3 (3 seeds) | 0.583 [0.483, 0.675] |
+| **RL + collusion data** | **13 / 3, 15 / 2, 15 / 4** (3 seeds) | **0.783 [0.667, 0.883]** |
+
+*Table 5. The 50 simple contrast examples, step 100. Balanced accuracy = (share of collusive flagged + share of honest not flagged) / 2; 0.5 is chance.* RL + collusion data beats RL + honest conversations only by +0.200 [+0.092, +0.308]. Two runs with no collusion data differ (2/20 and 9/20), so a single such run is a noisy baseline; the three collusion-data seeds are the most consistent.
+
+**4.3 A larger, fresh test.** After the models were chosen, separate agents wrote 1,092 new sentences on 12 collusion types no model had seen, including 359 matched collusive/honest pairs without obvious cue words, and 130 honest sentences that contain words like "collude" ("I won't collude with you on this bid") to test meaning against vocabulary. The design and metric were pre-registered. The ordering holds with a smaller effect: balanced accuracy **0.589** for RL + collusion data against 0.553 for honest conversations only and 0.515 for SFT (difference to honest-only +0.036 [+0.016, +0.056], p = 0.0004). Cue words do matter: honest sentences with cue words are flagged 32% of the time against 21% without, so the verbalizer reads both meaning and vocabulary. A blind sentence-only judge does not separate collusion-data RL from honest-only RL (AUROC 0.62 and 0.585 against 0.60 and 0.58), and the official NLA scores 0.805. **Positive and negative controls.** Positive controls, cases where the answer should come out right: a supervised collusion-direction probe on the same pairs scores 0.844, so the information is in the activation; the official NLA at 0.805 shows an NLA can express it; and earlier in the sprint a judge reading the *real text* detected collusion (0.91 on Core when the colluders actually acted), so the test itself can see collusion. Negative controls: the SFT, RL on public text only, RL on honest conversations only, and shuffled-sentence judging all sit near chance. I do not have a positive control inside the method itself, a case where the verbalizer is known to say collusion; the official NLA is the closest. Full tables are in Appendix A.
+
+![](figures/fig5_locked.png)
+
+**4.4 Realistic collusion: the Rose et al. data.** I tested on the setting Rose et al. use: instructed collusion (Core) and transfer to six task families (Transfer). First, probes. Probes trained on Core transfer poorly: mine get 0.52 on pooled Transfer against their 0.88 on Qwen3-32B, and 0.46 to 0.50 on Verdict against their 0.49 to 0.73. Second, the verbalizers: {{CORE_RESULT}} Only about 29% (Core) and 64% (Transfer) of agents told to collude actually did, which caps any detector.
+
+{{CORE_TABLE}}
+
+## 5. Discussion and Limitations
+
+**What the results mean.** The clearest result is 4.1: a verbalizer anchored to probe directions and trained with a reward that never names a concept starts naming concepts it was never taught, from the activation. That supports the idea that the method can find directions without labels. The collusion result is weaker and I want to be honest about why. The sentence it writes ("attempt to break its rules, hidden instructions overriding it, withheld information") is what it was taught for jailbreak, prompt injection and secrecy (Table 2), so the verbalizer is applying existing concepts to collusive text; whether that counts as "saying collusion" is my assumption. The RL did improve how often it applies them to collusive rather than honest sentences, and the honest-conversations-only run shows part of that comes from collusive content, but the evidence is modest.
+
+**Where it fails.** It worked on blatant, short collusion and not on realistic agent messages, and among held-out concepts it found topical ones but not a style concept. My main guess is model size: small models seem to represent high-level ideas less cleanly (Marks and Tegmark, 2023, suggest larger models linearly represent more abstract concepts; a hypothesis, not a measured scaling law), and I found good causal directions hard to find for high-level concepts in this model. This is a hypothesis: "vehicles", a concrete concept, was also hard, and I did not test a larger model.
+
+### Limitations and Dual-Use / Ethical Considerations
+
+**What the results do and do not establish.** They establish that, at 7B scale, a verbalizer anchored to verified probe directions and trained with a reward that never names a concept will name concepts it was never taught (Section 4.1), and that RL on collusion-related text makes it apply its jailbreak, prompt-injection and secrecy wording to plainly collusive sentences more than to honest ones (Sections 4.2 and 4.3). They do **not** establish that the method detects collusion between agents: the realistic data (Section 4.4) stayed at chance, the test sentences are short, LLM-written statements like "let's collude", the effect follows cue words as well as meaning, and a blind judge did not confirm the edge over honest-only RL. Other limits: 7B model only; a single seed for the music result; a crude keyword flag; one generator family for test text; "label-free" means no labels in the reward, not no choices in the data (I chose the pool); large seed-to-seed variation, with two of six runs more repetitive than the SFT; the step was chosen on one seed. The honest-only run is not a clean null, because its transcripts come from the same scenarios.
+
+**Dual-use and ethical considerations.** *Making collusion easier:* the work uses synthetic, LLM-written collusive sentences and transcripts (bid rigging, score swapping and similar). These describe well-known, generic tactics and give no operational uplift; no real people or personal data are involved. *Making collusion harder to detect:* the main risk is false confidence. A verbalizer that sounds convincing but is mostly wrong on realistic data could lead someone to trust a monitor that misses collusion, or to accuse honest agents on a false alarm; the cue-word result shows it can flag honest text for its vocabulary. Publishing which words the verbalizer relies on ("break its rules", "hidden instructions", "withheld") could also help an adversary phrase collusion to avoid them, and any monitor trained on or tuned against activations invites optimisation pressure that could teach a model to hide the signal. I therefore do not recommend deploying this as a monitor; it is a research result, to be used alongside, not instead of, transcript monitoring and other probes. All code and data are released so that others can check these claims.
+
+**Future work.** Scale the model size; scale the number of probe directions (find them with AI agents, over many layers, and give each layer its own input token); and design the reward, which decides what the verbalizer is pushed toward. Given how soon we need a replacement for chain-of-thought monitoring, someone should test whether this improves with scale.
+
+## 6. Conclusion
+
+I built an activation verbalizer anchored to probe directions and trained it with a reward that never uses labels for the concept of interest. At small scale (a 7B model), RL on collusion-related text made it flag plainly collusive sentences much more than honest ones, with a smaller but significant gain on fresh collusion types, and in an earlier run it began to name a held-out concept (music) without a label. It did not extend to realistic collusion, the effect is partly vocabulary, and it is smaller than that of the official NLA and a supervised probe.
+
+The idea is cheap to scale in the ways that matter: more directions, more layers, a larger model, and a better reward. If a grounded verbalizer improves with those, it could become a readable layer of monitoring that does not depend on what a model writes in its reasoning. That is the next test, and I did not get to it.
+
+## Code and Data
+Code, datasets (including the 1,092-sentence test set and labels), analysis scripts and this paper: https://github.com/jaredcobrin/causal-nla-collusion
+
+## Author Contributions
+J.C. designed the method, ran the experiments and wrote the paper.
+
+## References
+1. Korbak, T., et al. (2025). *Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety.* arXiv.
+2. Anthropic (2026). *Natural Language Autoencoders Produce Unsupervised Explanations of LLM Activations.* Transformer Circuits. https://transformer-circuits.pub/2026/nla/
+3. Fraser-Taliente et al. (2026). Released Qwen2.5-7B NLA: `kitft/nla-qwen2.5-7b-L20-av`, `-ar` (Hugging Face).
+4. Rose, A., Cullen, C., Abdelnabi, S., Torr, P., Kaplowitz, B. G., Schroeder de Witt, C. (2026). *Detecting Multi-Agent Collusion Through Multi-Agent Interpretability.* arXiv:2604.01151.
+5. Nanda, N. (2026, Sept 10). *Astra can do a concerning amount with no chain of thought.* AI Alignment Forum. https://www.alignmentforum.org/posts/eRmzz8J8Qkzqvzrgg/astra-can-do-a-concerning-amount-with-no-chain-of-thought
+6. Hong, S. P. (2026, July 24). *Fixing rewards for NLA to reduce confabulation.* LessWrong. https://www.greaterwrong.com/posts/DFgt8fi3Wzwwe2Sib/fixing-rewards-for-nla-to-reduce-confabulation
+7. Marks, S., Tegmark, M. (2023). *The Geometry of Truth: Emergent Linear Structure in Large Language Model Representations of True/False Datasets.* arXiv:2310.06824.
+8. Qwen Team. *Qwen2.5 Technical Report.*
+
+## LLM Usage Statement
+[Jared: confirm and edit.] I used Claude Code to help run and analyze experiments, to generate the synthetic test sentences (via small Claude models), to act as the blind judge, and to help draft this report. I checked the numbers against the saved result files.
+
+## Appendix A. A larger, fresh, controlled test
+
+**What this test is.** After the models were chosen, six separate Claude Haiku agents wrote 1,092 new sentences about 12 collusion types that appear nowhere else in the project (interest-rate fixing, supplier boycott, expense padding, doping cover-up, match fixing, insurance fraud ring, tender specification rigging, false alibi, grade-inflation pact, pricing-bot signalling, referral kickbacks, wash trading). For 359 collusive sentences with no obvious cue words (no "collude", "secretly", "rig" and so on) there is a matched honest sentence in the same setting, called a *pair*. A further 122 pairs do use cue words. And 130 honest sentences contain cue words on purpose ("I won't collude with you on this bid"), to check whether the verbalizer reads meaning or only vocabulary. I wrote down the design, the arms, the seeds and the main metric in a pre-registration before scoring it, so the result could not be tuned after the fact. These sentences were not used to train or choose anything.
+
+| Model | Collusive flagged | Honest flagged | Balanced accuracy [95% CI] |
+|---|---|---|---|
+| SFT | 21% | 18% | 0.515 [0.490, 0.543] |
+| RL, public text only (B) | 4% | 3% | 0.506 [0.492, 0.518] |
+| RL, public text only (re-run) | 13% | 9% | 0.519 [0.497, 0.543] |
+| RL + honest conversations only | 20% | 9% | 0.553 [0.535, 0.572] |
+| **RL + collusion data** | **38%** | **21%** | **0.589 [0.566, 0.612]** |
+
+*Table A1. The 359 cue-free pairs, step 100, seeds pooled.* RL + collusion data beats RL + honest conversations only by +0.036 [+0.016, +0.056] (p = 0.0004) and SFT by +0.073 [+0.048, +0.100] (p = 0.0002). The anti-collusion run also beats SFT (+0.038), so part of the gain is generic. The effect is small in absolute terms: BA ≈ 0.59.
+
+![](figures/fig5_locked.png)
+
+| Model | Collusive, no cue | Honest, no cue | Collusive, with cue | **Honest, with cue** |
+|---|---|---|---|---|
+| SFT | 21% | 18% | 29% | 22% |
+| RL + honest conversations only | 20% | 9% | 27% | 15% |
+| **RL + collusion data** | 38% | 21% | 56% | **32%** |
+
+*Table A2. Share flagged by cell.* For the collusion-data models, collusive beats honest by 18 points without cue words and 24 with them, so the verbalizer is not only reading vocabulary. But cue words alone raise the rate on honest sentences by 11 points (CI +4 to +19), so it reads both.
+
+**Blind judge, official NLA and probes.** A small Claude model saw only the verbalizer's output (never the input sentence or any label) and scored 0 to 100 how strongly it suggests collusion; two passes were averaged, on 100 cue-free pairs per model.
+
+| Detector | Pair AUROC, cue-free pairs [95% CI] |
+|---|---|
+| SFT / B | 0.470 / 0.505 |
+| RL + honest conversations only (seeds 11, 12) | 0.600 / 0.580 |
+| RL + collusion data (seeds 11, 12) | 0.620 / 0.585 |
+| Official NLA (Qwen2.5-7B) | **0.805 [0.730, 0.880]** |
+| Supervised collusion-direction probe | **0.844 [0.805, 0.880]** |
+| Probe trained on Core agent messages | 0.588 [0.538, 0.638] |
+
+*Table A3.* By the judge, collusion-data and anti-collusion-data RL are not distinguishable; both beat SFT. The official NLA is far stronger because it writes an explicit description ("a proposal to cheat…"). The supervised probe shows the information is in the activation.

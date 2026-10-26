@@ -1,0 +1,8 @@
+# torch and numpy come from the pod image (torch 2.8.0+cu128, numpy 2.1.2); exact versions used are
+# written to runs/<phase>/environment.json. Local tests used torch 2.5.1 (CPU).
+transformers==4.51.3
+datasets==3.2.0
+huggingface_hub==0.36.2
+pyyaml==6.0.2
+pytest==8.3.4
+scikit-learn==1.5.2

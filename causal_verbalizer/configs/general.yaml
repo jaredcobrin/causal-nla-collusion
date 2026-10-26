@@ -1,0 +1,234 @@
+# General concepts for the verbalizer: what to detect, where the contrast data comes from.
+#
+# A concept is a general idea (not "Apple Pay vs Google Pay"). Its positives are the union of several
+# independent sources, so we can hold one source out and test whether the direction still fires on it
+# (leave-one-source-out). Negatives are texts of other concepts, length-matched.
+#
+# registry: id -> a public dataset and the column that holds the class (cv audit: scripts/audit_sources.py)
+# concepts: name -> group, and `pos`: [source:value, ...] meaning "rows of that source whose class is value".
+# `gen` marks concepts that need generated data (no public dataset): they are built with Claude subagents
+# from templates and listed as AMBER/RED in the audit until written.
+
+registry:
+  # text: format string over the row's columns. cls: where the class comes from (col; names = int -> name;
+  # multi = list column; thr = float column bucketed into high/low; beaver = BeaverTails category dict).
+  # --- news / topic -------------------------------------------------------------------------------------
+  ag:        {hf: fancyzhx/ag_news,                         split: train,     text: "{text}",                                  cls: {col: label}}
+  ng:        {hf: SetFit/20_newsgroups,                     split: train,     text: "{text}",                                  cls: {col: label_text}}
+  yh:        {hf: community-datasets/yahoo_answers_topics,  split: train,     text: "{question_title} {question_content}",    cls: {col: topic}}
+  bbc:       {hf: SetFit/bbc-news,                          split: train,     text: "{text}",                                  cls: {col: label_text}}
+  tw:        {hf: cardiffnlp/tweet_topic_single,            split: train_all, text: "{text}",                                  cls: {col: label_name}}
+  nc:        {hf: heegyu/news-category-dataset,             split: train,     text: "{headline}. {short_description}",         cls: {col: category}}
+  fintopic:  {hf: zeroshot/twitter-financial-news-topic,    split: train,     text: "{text}",                                  cls: {col: label, names: [Analyst Update, Fed | Central Banks, Company | Product News, Treasuries | Corporate Debt, Dividend, Earnings, Energy | Oil, Financials, Currencies, General News | Opinion, Gold | Metals | Materials, IPO, Legal | Regulation, M&A | Investments, Macro, Markets, Politics, Personnel Change, Stock Commentary, Stock Movement]}}
+  arxiv:     {hf: ccdv/arxiv-classification,                split: train,     text: "{text}",                                  cls: {col: label}}
+  dbp:       {hf: fancyzhx/dbpedia_14, ordered: true,       split: train,     text: "{content}",                               cls: {col: label}}
+  mmlu:      {hf: cais/mmlu, config: all,                   split: test,      text: "{question}",                              cls: {col: subject}}
+  medmcqa:   {hf: openlifescienceai/medmcqa,                split: train,     text: "{question}",                              cls: {col: subject_name}}
+  # --- chat tasks / intents -----------------------------------------------------------------------------
+  norobots:  {hf: HuggingFaceH4/no_robots,                  split: train,     text: "{prompt}",                                cls: {col: category}}
+  dolly:     {hf: databricks/databricks-dolly-15k,          split: train,     text: "{instruction}",                           cls: {col: category}}
+  massive:   {hf: mteb/amazon_massive_scenario, config: en, split: train,     text: "{text}",                                  cls: {col: label_text}}
+  clinc:     {hf: clinc/clinc_oos, config: plus,            split: train,     text: "{text}",                                  cls: {col: intent}}
+  trec:      {hf: SetFit/TREC-QC,                           split: train,     text: "{text}",                                  cls: {col: label_coarse_text}}
+  dailydlg:  {hf: roskoN/dailydialog,                       split: train,     per_item: {text: utterances, cls: acts, names: [none, inform, question, directive, commissive]}, text: "", cls: {col: acts}}
+  empathic:  {hf: Estwld/empathetic_dialogues_llm,          split: train,     text: "{situation}",                             cls: {col: emotion}}
+  # --- sentiment / emotion / style ----------------------------------------------------------------------
+  sst2:      {hf: stanfordnlp/sst2,                         split: train,     text: "{sentence}",                              cls: {col: label}}
+  imdb:      {hf: stanfordnlp/imdb,                         split: train,     text: "{text}",                                  cls: {col: label}}
+  yelp:      {hf: fancyzhx/yelp_polarity,                   split: train,     text: "{text}",                                  cls: {col: label, names: [negative, positive]}}
+  amzpol:    {hf: fancyzhx/amazon_polarity,                 split: train,     text: "{title}. {content}",                      cls: {col: label}}
+  emotion:   {hf: dair-ai/emotion, config: split,           split: train,     text: "{text}",                                  cls: {col: label}}
+  goemo:     {hf: google-research-datasets/go_emotions, config: simplified, split: train, text: "{text}",                    cls: {col: labels, multi: true}}
+  formality: {hf: osyvokon/pavlick-formality-scores,        split: train,     text: "{sentence}",                              cls: {col: avg_score, thr: {high: 1.5, low: -1.5}}}
+  polite:    {hf: Intel/polite-guard,                       split: train,     text: "{text}",                                  cls: {col: label}}
+  sarcasm:   {hf: raquiba/Sarcasm_News_Headline,            split: train,     text: "{headline}",                              cls: {col: is_sarcastic, names: [not_sarcastic, sarcastic]}}
+  irony:     {hf: cardiffnlp/tweet_eval, config: irony,     split: train,     text: "{text}",                                  cls: {col: label, names: [non_irony, irony]}}
+  subj:      {hf: SetFit/subj,                              split: train,     text: "{text}",                                  cls: {col: label_text}}
+  jokes:     {hf: Fraser/short-jokes, trust: true, cap: 1000, split: train,  text: "{text}",                                  cls: {const: joke}}
+  # --- safety / model behaviour -------------------------------------------------------------------------
+  beaver:    {hf: PKU-Alignment/BeaverTails, trust: true,   split: 330k_train, text: "{prompt}",                             cls: {beaver: true}}
+  harmful:   {hf: mlabonne/harmful_behaviors,               split: train,     text: "{text}",                                  cls: {const: harmful_instruction}}
+  jailbreak: {hf: jackhhao/jailbreak-classification,        split: train,     text: "{prompt}",                                cls: {col: type}}
+  inject:    {hf: deepset/prompt-injections,                split: train,     text: "{text}",                                  cls: {col: label, names: [benign, injection]}}
+  toxchat:   {hf: lmsys/toxic-chat, config: toxicchat0124,  split: train,     text: "{user_input}",                            cls: {col: toxicity, names: [non_toxic, toxic]}}
+  civil:     {hf: google/civil_comments,                    split: train,     text: "{text}",                                  cls: {col: toxicity, thr: {high: 0.7, low: 0.05}}}
+  hate:      {hf: cardiffnlp/tweet_eval, config: hate,      split: train,     text: "{text}",                                  cls: {col: label, names: [non_hate, hate]}}
+  offensive: {hf: cardiffnlp/tweet_eval, config: offensive, split: train,     text: "{text}",                                  cls: {col: label, names: [non_offensive, offensive]}}
+  # --- form / language / content ------------------------------------------------------------------------
+  lang:      {hf: papluca/language-identification,          split: train,     text: "{text}",                                  cls: {col: labels}}
+  gsm8k:     {hf: openai/gsm8k, config: main, cap: 1000,               split: train,     text: "{question}",                              cls: {const: math_word_problem}}
+  tinystory: {hf: roneneldan/TinyStories, cap: 1000,                   split: train,     text: "{text}",                                  cls: {const: story}}
+  wiki:      {hf: wikimedia/wikipedia, config: 20231101.en, cap: 1000, split: train,     text: "{text}",                                  cls: {const: encyclopedia}}
+  code:      {hf: codeparrot/codeparrot-clean-valid, cap: 1000,        split: train,     text: "{content}",                               cls: {const: source_code}}
+  mnli:      {hf: nyu-mll/multi_nli,                        split: train,     text: "{premise}",                               cls: {col: genre}}
+  # --- second sources added to make concepts testable across independent datasets -----------------------
+  pku:       {hf: PKU-Alignment/PKU-SafeRLHF,               split: train,     text: "{prompt}",                                cls: {pku: true}}
+  itw_jb:    {hf: TrustAIRLab/in-the-wild-jailbreak-prompts, split: train, cap: 250, text: "{prompt}", cls: {const: x}, configs: {jailbreak: jailbreak_2023_12_25, benign: regular_2023_12_25}}
+  inject2:   {hf: xTRam1/safe-guard-prompt-injection,       split: train,     text: "{text}",                                  cls: {col: label, names: [benign, injection]}}
+  tw_emotion: {hf: cardiffnlp/tweet_eval, config: emotion,  split: train,     text: "{text}",                                  cls: {col: label}}
+  dd_emo:    {hf: roskoN/dailydialog,                       split: train,     per_item: {text: utterances, cls: emotions, names: [none, anger, disgust, fear, happiness, sadness, surprise]}, text: "", cls: {col: emotions}}
+  sst5:      {hf: SetFit/sst5,                              split: train,     text: "{text}",                                  cls: {col: label_text}}
+  tse:       {hf: mteb/tweet_sentiment_extraction,          split: train,     text: "{text}",                                  cls: {col: label_text}}
+  fever:     {hf: copenlu/fever_gold_evidence,              split: train,     text: "{claim}",                                 cls: {col: label, drop: [NOT ENOUGH INFO]}}
+  wikilang:  {hf: wikimedia/wikipedia, split: train, cap: 250, text: "{text}", cls: {const: x}, configs: {en: 20231101.en, es: 20231101.es, fr: 20231101.fr, de: 20231101.de, zh: 20231101.zh, ja: 20231101.ja, ar: 20231101.ar, ru: 20231101.ru}}
+  got_cities: {local: "data/general/gen/got_cities.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  got_common: {local: "data/general/gen/got_common.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  got_companies: {local: "data/general/gen/got_companies.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  got_counterfact: {local: "data/general/gen/got_counterfact.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  got_larger: {local: "data/general/gen/got_larger.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_req_translate: {local: "data/general/gen/req_translate.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_req_howto: {local: "data/general/gen/req_howto.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_hedging: {local: "data/general/gen/hedging.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_refusal: {local: "data/general/gen/refusal.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_deception: {local: "data/general/gen/deception.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_secrecy: {local: "data/general/gen/secrecy.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_eval_awareness: {local: "data/general/gen/eval_awareness.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_structured_data: {local: "data/general/gen/structured_data.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_past_tense: {local: "data/general/gen/past_tense.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen2_future_reference: {local: "data/general/gen/future_reference.setB*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  reddit_a:  {hf: sentence-transformers/reddit-title-body, split: train, text: "{title}. {body}", cls: {col: subreddit}, cap: 150, max_rows: 6000000, keep: ["3Dprinting", "ADHD", "Amd", "ApplyingToCollege", "Aquariums", "AskDocs", "AskElectronics", "AskHistorians", "AskScienceDiscussion", "Bass", "BitcoinMarkets", "BravoRealHousewives", "BreakUps", "CFB", "Cartalk", "Catholicism", "Christianity", "Coffee", "CoinBase", "Cooking", "CryptoCurrency", "DCcomics", "DataHoarder", "DeadBedrooms", "Dentistry", "DesignerReps", "Divorce", "Dogtraining", "Drugs", "Eminem", "EngineeringStudents", "EtherMining", "Fallout", "FantasyPL", "FashionReps", "Fitness", "Frugal", "GooglePixel", "Guitar", "Gunners", "Gunsforsale", "HVAC", "HomeImprovement", "JUSTNOMIL", "JapanTravel", "Jokes", "JordanPeterson", "LSD", "LushCosmetics", "MDMA", "MakeupRehab", "MechanicalKeyboards", "Monero", "MoneroMining", "MouseReview", "MtF", "NASCAR", "NintendoSwitch", "OnePiece", "Overwatch", "PS4", "Parenting", "Pets", "Plumbing", "Python", "RealEstate", "RepLadies", "Screenwriting", "ShingekiNoKyojin", "Showerthoughts", "SkincareAddiction", "SquaredCircle", "StardewValley", "Stellar", "SuicideWatch", "Teachers", "The_Donald", "Tronix", "UIUC", "UKPersonalFinance", "Unity3D", "UofT", "WWII", "Warframe", "Watches", "Windows10", "Xiaomi", "actuallesbians", "altcoin", "amazonecho", "anime", "arduino", "askphilosophy", "askscience", "asktransgender", "asoiaf", "aws", "baseball", "beyondthebump", "bicycling", "bipolar", "bisexual", "bjj", "blackmirror", "boardgames", "books", "booksuggestions", "brockhampton", "btc", "buildapc", "buildapcforme", "careerguidance", "cars", "childfree", "computers", "dating_advice", "datingoverthirty", "depression", "doctorwho", "dogecoin", "dogs", "excel", "exchristian", "exjw", "factorio", "fasting", "flying", "gamedev", "gameofthrones", "gaming", "gardening", "garlicoin", "golf", "gradadmissions", "guitarpedals", "guns", "hearthstone", "homelab", "hometheater", "jobs", "keto", "kratom", "lakers", "lawschooladmissions", "learnprogramming", "legaladvice", "linux4noobs", "mac", "math", "medicalschool", "mentalhealth", "minnesotavikings", "movies", "nba", "oneplus", "overclocking", "pcmasterrace", "personalfinance", "pokemon", "polyamory", "popheads", "privacy", "radiohead", "relationships", "sales", "schizophrenia", "smallbusiness", "soccer", "startrek", "stocks", "survivor", "synthesizers", "tax", "tea", "techsupport", "television", "teslamotors", "thinkpad", "torontoraptors", "travel", "trees", "vaporents", "vergecurrency", "whatcarshouldIbuy", "whatsthatbook", "worldbuilding", "xxfitness"]}
+  reddit_b:  {hf: sentence-transformers/reddit-title-body, split: train, text: "{title}. {body}", cls: {col: subreddit}, cap: 150, max_rows: 6000000, keep: ["ABraThatFits", "Accounting", "Advice", "AndroidQuestions", "Anxiety", "AskCulinary", "AskPhysics", "AskProgramming", "AskVet", "BPD", "BPDlovedones", "BabyBumps", "Bitcoin", "BitcoinBeginners", "Buddhism", "CapitalismVSocialism", "ChapoTrapHouse", "CollegeBasketball", "Cricket", "CryptoMarkets", "DarkNetMarkets", "Dell", "DnD", "DotA2", "DunderMifflin", "DynastyFF", "Entrepreneur", "ExNoContact", "Fantasy", "Filmmakers", "FlashTV", "FrankOcean", "GalaxyS8", "GradSchool", "HPfanfiction", "HomeNetworking", "Homebrewing", "HomeworkHelp", "ITCareerQuestions", "Insurance", "Iota", "LGBTeens", "LawSchool", "LegalAdviceUK", "LiverpoolFC", "LongDistance", "MTB", "MakeupAddiction", "Mcat", "MechanicAdvice", "Minecraft", "Monitors", "MovieSuggestions", "Music", "Naruto", "NiceHash", "OCD", "OkCupid", "Patriots", "PersonalFinanceCanada", "PowerShell", "Psychonaut", "Repsneakers", "RimWorld", "Ripple", "Sneakers", "StarWars", "Steam", "Stims", "SuggestALaptop", "Surface", "Terraria", "WWE", "WaltDisneyWorld", "WeAreTheMusicMakers", "Wordpress", "adultery", "apple", "ar15", "askcarsales", "askgaybros", "aspergers", "atheism", "awardtravel", "bettafish", "binance", "birthcontrol", "bodyweightfitness", "breakingmom", "cats", "college", "comicbooks", "copypasta", "cscareerquestions", "eagles", "edmproduction", "electricians", "ethereum", "ethtrader", "exmormon", "exmuslim", "fantasybball", "financialindependence", "firefox", "forhire", "formula1", "ftm", "googlehome", "gpumining", "hackintosh", "harrypotter", "history", "hockey", "homeautomation", "homeowners", "intermittentfasting", "investing", "iphone", "kucoin", "leagueoflegends", "learnmath", "learnpython", "lgbt", "linuxquestions", "litecoin", "loseit", "makeupexchange", "makinghiphop", "manga", "marvelstudios", "motorcycles", "musictheory", "netflix", "nfl", "nintendo", "nursing", "opiates", "piano", "premed", "puppy101", "raisedbynarcissists", "raspberry_pi", "relationship_advice", "researchchemicals", "runescape", "rupaulsdragrace", "rutgers", "shrooms", "skyrim", "socialanxiety", "solotravel", "stevenuniverse", "subaru", "suggestmeabook", "sysadmin", "tennis", "thebachelor", "uwaterloo", "wallstreetbets", "webdev", "weddingplanning", "wicked_edge", "woodworking", "writing", "xboxone", "xxketo"]}
+  # --- written for this project (Claude subagents): matched positives/negatives -----------------------
+  gen_req_translate: {local: "data/general/gen/req_translate.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_req_howto: {local: "data/general/gen/req_howto.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_hedging: {local: "data/general/gen/hedging.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_refusal: {local: "data/general/gen/refusal.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_sycophancy: {local: "data/general/gen/sycophancy.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_deception: {local: "data/general/gen/deception.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_secrecy: {local: "data/general/gen/secrecy.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_eval_awareness: {local: "data/general/gen/eval_awareness.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_true_claim: {local: "data/general/gen/true_claim.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_structured_data: {local: "data/general/gen/structured_data.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_past_tense: {local: "data/general/gen/past_tense.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+  gen_future_reference: {local: "data/general/gen/future_reference.part*.jsonl", text: "{text}", cls: {col: label}, cap: 1000}
+
+# pos: source:class pairs (case-insensitive glob over the real class names; "*" = every row of the source).
+# `gen: true` = no public source, written from templates with Claude subagents (stage 2).
+concepts:
+  # ============== topics (what the text is about) ==============
+  technology:      {group: topic, pos: [ag:Sci/Tech, ng:comp.*, yh:Computers & Internet, tw:science_&_technology, bbc:tech, nc:TECH, reddit_a:techsupport, reddit_a:pcmasterrace, reddit_a:GooglePixel, reddit_a:3Dprinting, reddit_a:Windows10, reddit_a:homelab, reddit_a:oneplus, reddit_a:Amd, reddit_a:linux4noobs, reddit_a:mac, reddit_a:computers, reddit_a:Xiaomi, reddit_a:amazonecho, reddit_a:arduino, reddit_a:privacy, reddit_a:DataHoarder, reddit_b:iphone, reddit_b:sysadmin, reddit_b:apple, reddit_b:GalaxyS8, reddit_b:Surface, reddit_b:HomeNetworking, reddit_b:AndroidQuestions, reddit_b:raspberry_pi, reddit_b:firefox, reddit_b:googlehome, reddit_b:hackintosh, reddit_b:linuxquestions]}
+  science:         {group: topic, pos: [ng:sci.space, ng:sci.crypt, ng:sci.electronics, yh:Science & Mathematics, nc:SCIENCE, mmlu:high_school_physics, mmlu:high_school_chemistry, mmlu:high_school_biology, mmlu:college_physics, mmlu:college_chemistry, mmlu:college_biology, mmlu:astronomy, reddit_a:askscience, reddit_a:AskScienceDiscussion, reddit_b:AskPhysics]}
+  health:          {group: topic, pos: [yh:Health, ng:sci.med, nc:WELLNESS, nc:HEALTHY LIVING, medmcqa:*, mmlu:clinical_knowledge, mmlu:nutrition, mmlu:virology, mmlu:anatomy, mmlu:medical_genetics, reddit_a:AskDocs, reddit_a:medicalschool, reddit_a:Dentistry, reddit_a:keto, reddit_a:fasting, reddit_a:Fitness, reddit_a:xxfitness, reddit_b:premed, reddit_b:nursing, reddit_b:birthcontrol, reddit_b:loseit, reddit_b:intermittentfasting, reddit_b:bodyweightfitness, reddit_b:xxketo]}
+  finance:         {group: topic, pos: [ag:Business, yh:Business & Finance, bbc:business, nc:BUSINESS, nc:MONEY, "fintopic:Fed*", fintopic:Earnings, fintopic:Dividend, fintopic:Financials, fintopic:Markets, fintopic:Currencies, fintopic:IPO, "fintopic:M&A*", fintopic:Macro, "fintopic:Stock*", "fintopic:Treasuries*", mmlu:high_school_macroeconomics, mmlu:professional_accounting, mmlu:econometrics, reddit_a:personalfinance, reddit_a:UKPersonalFinance, reddit_a:stocks, reddit_a:Frugal, reddit_a:tax, reddit_a:RealEstate, reddit_b:PersonalFinanceCanada, reddit_b:investing, reddit_b:financialindependence, reddit_b:Accounting, reddit_b:wallstreetbets, reddit_b:Insurance]}
+  politics:        {group: topic, pos: [ng:talk.politics.*, yh:Politics & Government, bbc:politics, nc:POLITICS, mmlu:high_school_government_and_politics, mmlu:us_foreign_policy, reddit_a:The_Donald, reddit_a:JordanPeterson, reddit_b:ChapoTrapHouse, reddit_b:CapitalismVSocialism]}
+  sports:          {group: topic, pos: [ag:Sports, ng:rec.sport.*, yh:Sports, bbc:sport, nc:SPORTS, tw:sports_&_gaming, dbp:Athlete, reddit_a:nba, reddit_a:soccer, reddit_a:baseball, reddit_a:minnesotavikings, reddit_a:lakers, reddit_a:golf, reddit_a:FantasyPL, reddit_a:Gunners, reddit_a:torontoraptors, reddit_a:NASCAR, reddit_a:CFB, reddit_a:SquaredCircle, reddit_a:bjj, reddit_b:hockey, reddit_b:nfl, reddit_b:CollegeBasketball, reddit_b:eagles, reddit_b:tennis, reddit_b:formula1, reddit_b:LiverpoolFC, reddit_b:Cricket, reddit_b:Patriots, reddit_b:fantasybball, reddit_b:DynastyFF, reddit_b:WWE]}
+  entertainment:   {group: topic, pos: [yh:Entertainment & Music, bbc:entertainment, nc:ENTERTAINMENT, tw:pop_culture, tw:arts_&_culture, dbp:Film, dbp:Album, reddit_a:movies, reddit_a:television, reddit_a:gameofthrones, reddit_a:startrek, reddit_a:doctorwho, reddit_a:BravoRealHousewives, reddit_a:blackmirror, reddit_a:Screenwriting, reddit_a:DCcomics, reddit_a:anime, reddit_a:OnePiece, reddit_a:ShingekiNoKyojin, reddit_a:survivor, reddit_b:marvelstudios, reddit_b:netflix, reddit_b:DunderMifflin, reddit_b:StarWars, reddit_b:thebachelor, reddit_b:FlashTV, reddit_b:Filmmakers, reddit_b:MovieSuggestions, reddit_b:comicbooks, reddit_b:Naruto, reddit_b:manga, reddit_b:rupaulsdragrace, reddit_b:stevenuniverse]}
+  education:       {group: topic, pos: [yh:Education & Reference, nc:EDUCATION, nc:COLLEGE, dbp:EducationalInstitution, reddit_a:ApplyingToCollege, reddit_a:Teachers, reddit_a:gradadmissions, reddit_a:UofT, reddit_a:UIUC, reddit_a:EngineeringStudents, reddit_b:college, reddit_b:GradSchool, reddit_b:uwaterloo, reddit_b:rutgers, reddit_b:HomeworkHelp, reddit_b:Mcat]}
+  religion:        {group: topic, pos: [ng:alt.atheism, ng:soc.religion.christian, ng:talk.religion.misc, nc:RELIGION, mmlu:world_religions, reddit_a:Christianity, reddit_a:exjw, reddit_a:Catholicism, reddit_a:exchristian, reddit_b:exmormon, reddit_b:atheism, reddit_b:Buddhism, reddit_b:exmuslim]}
+  law:             {group: topic, pos: [mmlu:professional_law, mmlu:jurisprudence, mmlu:international_law, "fintopic:Legal*", reddit_a:legaladvice, reddit_a:lawschooladmissions, reddit_b:LegalAdviceUK, reddit_b:LawSchool]}
+  food:            {group: topic, pos: [nc:FOOD & DRINK, nc:TASTE, massive:cooking, massive:takeaway, clinc:cook_time, clinc:meal_suggestion, clinc:nutrition_info, clinc:recipe, reddit_a:Cooking, reddit_a:Coffee, reddit_a:tea, reddit_b:AskCulinary, reddit_b:Homebrewing]}
+  travel:          {group: topic, pos: [nc:TRAVEL, massive:transport, clinc:book_flight, clinc:book_hotel, clinc:travel_alert, clinc:car_rental, clinc:lost_luggage, clinc:carry_on, reddit_a:travel, reddit_a:JapanTravel, reddit_a:flying, reddit_b:solotravel, reddit_b:awardtravel, reddit_b:WaltDisneyWorld]}
+  family:          {group: topic, pos: [yh:Family & Relationships, nc:PARENTING, nc:PARENTS, nc:WEDDINGS, reddit_a:Parenting, reddit_a:beyondthebump, reddit_a:childfree, reddit_b:BabyBumps, reddit_b:breakingmom, reddit_b:raisedbynarcissists]}
+  vehicles:        {group: topic, pos: [ng:rec.autos, ng:rec.motorcycles, dbp:MeanOfTransportation, clinc:oil_change_how, clinc:tire_change, clinc:jump_start, clinc:gas, reddit_a:cars, reddit_a:Cartalk, reddit_a:whatcarshouldIbuy, reddit_a:teslamotors, reddit_a:bicycling, reddit_b:MechanicAdvice, reddit_b:motorcycles, reddit_b:subaru, reddit_b:askcarsales, reddit_b:MTB]}
+  environment:     {group: topic, pos: [nc:ENVIRONMENT, nc:GREEN, dbp:NaturalPlace, dbp:Plant, dbp:Animal]}
+  space:           {group: topic, pos: [ng:sci.space, mmlu:astronomy]}
+  mathematics:     {group: topic, pos: [gsm8k:*, mmlu:abstract_algebra, mmlu:elementary_mathematics, mmlu:high_school_mathematics, mmlu:college_mathematics, "arxiv:math.*", reddit_a:math, reddit_b:learnmath]}
+  history:         {group: topic, pos: [mmlu:high_school_world_history, mmlu:high_school_us_history, mmlu:high_school_european_history, mmlu:prehistory, reddit_a:AskHistorians, reddit_a:WWII, reddit_b:history]}
+  crime_conflict:  {group: topic, pos: [nc:CRIME, ng:talk.politics.guns, ng:talk.politics.mideast, mmlu:security_studies]}
+  music:           {group: topic, pos: [massive:music, dbp:Album, clinc:update_playlist, clinc:what_song, reddit_a:Guitar, reddit_a:popheads, reddit_a:synthesizers, reddit_a:Bass, reddit_a:guitarpedals, reddit_a:radiohead, reddit_a:Eminem, reddit_a:brockhampton, reddit_b:WeAreTheMusicMakers, reddit_b:edmproduction, reddit_b:musictheory, reddit_b:piano, reddit_b:makinghiphop, reddit_b:Music, reddit_b:FrankOcean]}
+  weather:         {group: topic, pos: [massive:weather, clinc:weather]}
+  shopping:        {group: topic, pos: [massive:recommendation, ng:misc.forsale, clinc:order, clinc:shopping_list]}
+  work_career:     {group: topic, pos: [reddit_a:jobs, reddit_a:careerguidance, reddit_a:sales, reddit_a:smallbusiness, reddit_b:cscareerquestions, reddit_b:ITCareerQuestions, reddit_b:Entrepreneur, reddit_b:forhire]}
+  art_culture:     {group: topic, pos: [nc:ARTS, nc:ARTS & CULTURE, nc:CULTURE & ARTS, dbp:Artist, tw:arts_&_culture]}
+  home_living:     {group: topic, pos: [nc:HOME & LIVING, reddit_a:HomeImprovement, reddit_a:Plumbing, reddit_a:HVAC, reddit_a:gardening, reddit_a:AskElectronics, reddit_b:homeowners, reddit_b:electricians, reddit_b:woodworking, reddit_b:homeautomation]}
+  fashion_beauty:  {group: topic, pos: [nc:STYLE, nc:STYLE & BEAUTY, reddit_a:SkincareAddiction, reddit_a:FashionReps, reddit_a:Watches, reddit_a:MakeupRehab, reddit_a:RepLadies, reddit_a:LushCosmetics, reddit_a:DesignerReps, reddit_b:MakeupAddiction, reddit_b:Sneakers, reddit_b:wicked_edge, reddit_b:ABraThatFits, reddit_b:Repsneakers, reddit_b:makeupexchange]}
+  computing_hw:    {group: topic, pos: [ng:comp.sys.*, ng:sci.electronics, mmlu:electrical_engineering, mmlu:computer_security, reddit_a:buildapc, reddit_a:MechanicalKeyboards, reddit_a:thinkpad, reddit_a:overclocking, reddit_a:MouseReview, reddit_a:buildapcforme, reddit_a:hometheater, reddit_b:Monitors, reddit_b:SuggestALaptop, reddit_b:Dell]}
+
+  # ============== task / request type (what is being asked) ==============
+  req_code:        {group: task, pos: [norobots:Coding, code:*]}
+  req_summarize:   {group: task, pos: [norobots:Summarize, dolly:summarization]}
+  req_rewrite:     {group: task, pos: [norobots:Rewrite]}
+  req_brainstorm:  {group: task, pos: [norobots:Brainstorm, dolly:brainstorming]}
+  req_creative:    {group: task, pos: [norobots:Generation, dolly:creative_writing]}
+  req_open_qa:     {group: task, pos: [norobots:Open QA, dolly:open_qa, dolly:general_qa]}
+  req_classify:    {group: task, pos: [norobots:Classify, dolly:classification]}
+  req_extract:     {group: task, pos: [norobots:Extract, norobots:Closed QA, dolly:information_extraction, dolly:closed_qa]}
+  req_chitchat:    {group: task, pos: [norobots:Chat, clinc:tell_joke, clinc:greeting, clinc:how_old_are_you, clinc:what_is_your_name]}
+  req_math:        {group: task, pos: [gsm8k:*, mmlu:elementary_mathematics]}
+  req_advice:      {group: task, pos: [massive:recommendation, dolly:brainstorming]}
+  req_support:     {group: task, pos: [empathic:sad, empathic:lonely, empathic:devastated, empathic:anxious, empathic:disappointed]}
+  req_command:     {group: task, pos: [massive:*, dailydlg:directive]}
+  question_form:   {group: task, pos: [trec:*, dailydlg:question, norobots:Open QA]}
+  req_translate:   {group: task, pos: [gen_req_translate:pos, gen2_req_translate:pos]}
+  req_howto:       {group: task, pos: [gen_req_howto:pos, gen2_req_howto:pos]}
+
+  # ============== tone / affect / style ==============
+  sentiment_pos:   {group: tone, pos: [sst2:positive, imdb:pos, yelp:positive, amzpol:positive, sst5:positive, sst5:very positive, tse:positive]}
+  sentiment_neg:   {group: tone, pos: [sst2:negative, imdb:neg, yelp:negative, amzpol:negative, sst5:negative, sst5:very negative, tse:negative]}
+  joy:             {group: tone, pos: [emotion:joy, goemo:joy, goemo:amusement, goemo:excitement, empathic:joyful, empathic:excited, tw_emotion:joy, dd_emo:happiness]}
+  sadness:         {group: tone, pos: [emotion:sadness, goemo:sadness, goemo:grief, goemo:disappointment, empathic:sad, empathic:devastated, empathic:lonely, tw_emotion:sadness, dd_emo:sadness]}
+  anger:           {group: tone, pos: [emotion:anger, goemo:anger, goemo:annoyance, empathic:angry, empathic:furious, empathic:annoyed, tw_emotion:anger, dd_emo:anger]}
+  fear:            {group: tone, pos: [emotion:fear, goemo:fear, goemo:nervousness, empathic:afraid, empathic:terrified, empathic:anxious, dd_emo:fear]}
+  surprise:        {group: tone, pos: [emotion:surprise, goemo:surprise, empathic:surprised, dd_emo:surprise]}
+  love:            {group: tone, pos: [emotion:love, goemo:love, goemo:caring, goemo:admiration, empathic:caring]}
+  disgust:         {group: tone, pos: [goemo:disgust, empathic:disgusted, dd_emo:disgust]}
+  gratitude:       {group: tone, pos: [goemo:gratitude, empathic:grateful]}
+  pride:           {group: tone, pos: [goemo:pride, empathic:proud]}
+  guilt_shame:     {group: tone, pos: [goemo:remorse, goemo:embarrassment, empathic:guilty, empathic:ashamed, empathic:embarrassed]}
+  curiosity:       {group: tone, pos: [goemo:curiosity, goemo:confusion]}
+  formal:          {group: tone, pos: [formality:high, wiki:*, mnli:government]}
+  informal:        {group: tone, pos: [formality:low, tw:*, goemo:*]}
+  polite:          {group: tone, pos: [polite:polite, polite:somewhat polite]}
+  rude:            {group: tone, pos: [polite:impolite, toxchat:toxic]}
+  humor:           {group: tone, pos: [jokes:*, goemo:amusement, reddit_a:Jokes, reddit_a:Showerthoughts, reddit_b:copypasta]}
+  sarcasm:         {group: tone, pos: [sarcasm:sarcastic, irony:irony]}
+  objective:       {group: tone, pos: [subj:objective, wiki:*, mnli:government]}
+  subjective:      {group: tone, pos: [subj:subjective, imdb:*, sst2:*]}
+  hedging:         {group: tone, pos: [gen_hedging:pos, gen2_hedging:pos]}
+
+  # ============== safety / model behaviour ==============
+  harmful_request: {group: safety, pos: [beaver:unsafe, harmful:*, toxchat:toxic, pku:unsafe]}
+  jailbreak:       {group: safety, pos: [jailbreak:jailbreak, itw_jb:jailbreak]}
+  prompt_injection: {group: safety, pos: [inject:injection, inject2:injection]}
+  toxicity:        {group: safety, pos: [civil:high, toxchat:toxic, offensive:offensive]}
+  hate_speech:     {group: safety, pos: [hate:hate, "beaver:hate_speech*"]}
+  discrimination:  {group: safety, pos: ["beaver:discrimination*", "beaver:controversial_topics*", pku:Discriminatory Behavior]}
+  self_harm:       {group: safety, pos: [beaver:self_harm]}
+  violence:        {group: safety, pos: ["beaver:violence*", "beaver:terrorism*", pku:Violence, pku:Physical Harm]}
+  privacy_pii:     {group: safety, pos: [beaver:privacy_violation, pku:Privacy Violation]}
+  sexual_content:  {group: safety, pos: ["beaver:sexually_explicit*", pku:Sexual Content]}
+  illegal_activity: {group: safety, pos: ["beaver:financial_crime*", "beaver:drug_abuse*", pku:Economic Crime, pku:Drugs, pku:Cybercrime, pku:White-Collar Crime]}
+  misinformation:  {group: safety, pos: ["beaver:misinformation*"]}
+  refusal:         {group: safety, pos: [gen_refusal:pos, gen2_refusal:pos]}
+  sycophancy:      {group: safety, pos: [gen_sycophancy:pos]}
+  deception:       {group: safety, pos: [gen_deception:pos, gen2_deception:pos]}
+  secrecy:         {group: safety, pos: [gen_secrecy:pos, gen2_secrecy:pos]}
+  eval_awareness:  {group: safety, pos: [gen_eval_awareness:pos, gen2_eval_awareness:pos]}
+  true_claim:      {group: safety, pos: [gen_true_claim:pos, fever:SUPPORTS, got_cities:pos, got_common:pos, got_companies:pos, got_counterfact:pos, got_larger:pos]}
+
+  # ============== form / language / content ==============
+  code_present:    {group: form, pos: [code:*, norobots:Coding]}
+  non_english:     {group: form, pos: [lang:ar, lang:bg, lang:de, lang:el, lang:es, lang:fr, lang:hi, lang:it, lang:ja, lang:nl, lang:pl, lang:pt, lang:ru, lang:sw, lang:th, lang:tr, lang:ur, lang:vi, lang:zh, wikilang:es, wikilang:fr, wikilang:de, wikilang:zh, wikilang:ja, wikilang:ar, wikilang:ru]}
+  spanish:         {group: form, pos: [lang:es, wikilang:es]}
+  french:          {group: form, pos: [lang:fr, wikilang:fr]}
+  german:          {group: form, pos: [lang:de, wikilang:de]}
+  chinese:         {group: form, pos: [lang:zh, wikilang:zh]}
+  japanese:        {group: form, pos: [lang:ja, wikilang:ja]}
+  arabic:          {group: form, pos: [lang:ar, wikilang:ar]}
+  russian:         {group: form, pos: [lang:ru, wikilang:ru]}
+  math_notation:   {group: form, pos: [gsm8k:*, "arxiv:math.*"]}
+  narrative:       {group: form, pos: [tinystory:*, mnli:fiction]}
+  first_person:    {group: form, pos: [empathic:*, tw:*, imdb:*, goemo:*]}
+  numbers:         {group: form, pos: [trec:numeric values, gsm8k:*]}
+  person_entity:   {group: form, pos: [dbp:Artist, dbp:OfficeHolder, dbp:Athlete, trec:human beings]}
+  place_entity:    {group: form, pos: [dbp:Village, dbp:NaturalPlace, dbp:Building, trec:locations]}
+  organisation:    {group: form, pos: [dbp:Company, dbp:EducationalInstitution]}
+  scientific_text: {group: form, pos: [arxiv:*, medmcqa:*, mmlu:college_physics]}
+  fiction:         {group: form, pos: [tinystory:*, mnli:fiction]}
+  factual_encyclopedic: {group: form, pos: [wiki:*, mnli:government]}
+  structured_data: {group: form, pos: [gen_structured_data:pos, gen2_structured_data:pos]}
+  past_tense:      {group: form, pos: [gen_past_tense:pos, gen2_past_tense:pos]}
+  future_reference: {group: form, pos: [gen_future_reference:pos, gen2_future_reference:pos]}
+
+  # ============== added from Reddit communities (+ a second public dataset where one exists) ==============
+  mental_health: {group: tone, pos: [reddit_a:depression, reddit_a:mentalhealth, reddit_a:ADHD, reddit_a:bipolar, reddit_a:schizophrenia, reddit_a:SuicideWatch, reddit_b:Anxiety, reddit_b:BPD, reddit_b:OCD, reddit_b:socialanxiety, reddit_b:aspergers, reddit_b:BPDlovedones]}
+  relationships: {group: topic, pos: [yh:Family & Relationships, reddit_a:relationships, reddit_a:dating_advice, reddit_a:BreakUps, reddit_a:Divorce, reddit_a:DeadBedrooms, reddit_a:JUSTNOMIL, reddit_a:datingoverthirty, reddit_a:polyamory, reddit_b:relationship_advice, reddit_b:Advice, reddit_b:LongDistance, reddit_b:ExNoContact, reddit_b:OkCupid, reddit_b:weddingplanning, reddit_b:adultery]}
+  books: {group: topic, pos: [dbp:WrittenWork, reddit_a:books, reddit_a:booksuggestions, reddit_a:whatsthatbook, reddit_a:asoiaf, reddit_a:worldbuilding, reddit_b:suggestmeabook, reddit_b:writing, reddit_b:HPfanfiction, reddit_b:Fantasy, reddit_b:harrypotter]}
+  gaming: {group: topic, pos: [tw:sports_&_gaming, reddit_a:gaming, reddit_a:pokemon, reddit_a:NintendoSwitch, reddit_a:PS4, reddit_a:boardgames, reddit_a:Overwatch, reddit_a:Warframe, reddit_a:hearthstone, reddit_a:Fallout, reddit_a:StardewValley, reddit_a:factorio, reddit_b:Minecraft, reddit_b:nintendo, reddit_b:xboxone, reddit_b:Steam, reddit_b:DnD, reddit_b:leagueoflegends, reddit_b:DotA2, reddit_b:runescape, reddit_b:skyrim, reddit_b:Terraria, reddit_b:RimWorld]}
+  pets: {group: topic, pos: [reddit_a:dogs, reddit_a:Dogtraining, reddit_a:Aquariums, reddit_a:Pets, reddit_b:cats, reddit_b:puppy101, reddit_b:bettafish, reddit_b:AskVet]}
+  programming: {group: topic, pos: [norobots:Coding, reddit_a:learnprogramming, reddit_a:Python, reddit_a:gamedev, reddit_a:Unity3D, reddit_a:excel, reddit_a:aws, reddit_b:learnpython, reddit_b:webdev, reddit_b:AskProgramming, reddit_b:PowerShell, reddit_b:Wordpress]}
+  drugs: {group: topic, pos: [pku:Drugs, beaver:drug_abuse*, reddit_a:Drugs, reddit_a:LSD, reddit_a:trees, reddit_a:MDMA, reddit_a:kratom, reddit_a:vaporents, reddit_b:opiates, reddit_b:shrooms, reddit_b:researchchemicals, reddit_b:Psychonaut, reddit_b:Stims, reddit_b:DarkNetMarkets]}
+  cryptocurrency: {group: topic, pos: [reddit_a:CryptoCurrency, reddit_a:btc, reddit_a:dogecoin, reddit_a:Monero, reddit_a:BitcoinMarkets, reddit_a:altcoin, reddit_a:Stellar, reddit_a:garlicoin, reddit_a:vergecurrency, reddit_a:CoinBase, reddit_a:Tronix, reddit_a:EtherMining, reddit_a:MoneroMining, reddit_b:Bitcoin, reddit_b:ethtrader, reddit_b:litecoin, reddit_b:ethereum, reddit_b:CryptoMarkets, reddit_b:Ripple, reddit_b:binance, reddit_b:Iota, reddit_b:BitcoinBeginners, reddit_b:kucoin, reddit_b:NiceHash, reddit_b:gpumining]}
+  lgbtq: {group: topic, pos: [nc:QUEER VOICES, reddit_a:asktransgender, reddit_a:MtF, reddit_a:actuallesbians, reddit_a:bisexual, reddit_b:ftm, reddit_b:askgaybros, reddit_b:LGBTeens, reddit_b:lgbt]}
+  firearms: {group: topic, pos: [ng:talk.politics.guns, reddit_a:guns, reddit_a:Gunsforsale, reddit_b:ar15]}
+  philosophy: {group: topic, pos: [mmlu:philosophy, reddit_a:askphilosophy]}

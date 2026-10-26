@@ -1,0 +1,54 @@
+# Run settings. A run copies this file into its output folder and refuses to continue if the
+# thresholds later change (pre-registration).
+
+model: Qwen/Qwen2.5-7B-Instruct
+seed: 0
+
+# Layer = block index: output of model.model.layers[k] = HF hidden_states[k+1].
+# 20 = the released NLA's layer and J-lens J[20]; 19 (= Persona Vectors' "layer 20") is saved too.
+layer: 20
+saved_layers: [19, 20]
+
+# Split quotas in groups (a group = all rows from one source item). Concepts may override.
+quota: {test: 100, val: 60, train: 300, screen: 300}
+train_start: 150             # groups used to build a direction; all train groups only if split-half < 0.9
+
+filter: {min_groups: 40}      # behaviour-filtered directions need at least this many kept train groups
+pv: {samples: 2, max_new_tokens: 256, temperature: 1.0}   # Persona Vectors extraction recipe
+
+# Tests: 40 replies per condition. Concepts with >= 40 prompts: 40 prompts, the model's most likely
+# (greedy) reply. Persona Vectors traits (10 prompts per split): 4 sampled replies each, temperature 1.
+replies: {per_condition: 40, max_new_tokens: 160}
+strengths: [-1.0, 0.5, 1.0, 2.0]   # multiples of the direction's natural size (0 = no steering)
+n_random: 5                        # random-direction controls per test
+spillover: {concepts: 3, prompts: 20, duplicate_cos: 0.7}
+neutral: {n: 30, tokens: 128}
+batch: {forward: 32, generate: 48}
+bootstrap: 2000
+
+# A/B choice tests (cv/ab.py): every concept that has a two-answer form, small samples.
+ab:
+  groups: 100          # train groups used to build each direction (grows to all only if split-half < 0.9)
+  items: 40            # val prompts per concept
+  min_effect: 0.05     # steering/removal must move the chance of the concept answer by at least 5 points
+
+phases:
+  check: {split: val}    # pipeline check: 10 pilots + 3 shuffled-label controls
+  main: {split: test}    # all 42 concepts
+
+thresholds:
+  split_half: 0.9        # direction built from two halves of the data must agree (cosine)
+  t1_monotone: 0.9       # Spearman of mean score vs strength over -1, 0, +0.5, +1, +2
+  t2_coherence: 50       # mean coherence of steered replies at +1x and -1x
+  t2_spillover: 0.5      # max effect on a similar concept / own effect, at +1x
+  t3_present: 10         # replies that show the concept by themselves needed to test removal
+  t3_gap_frac: 0.25      # share of the shows-vs-doesn't-show gap that removal must close
+
+# Transfer test (cv/transfer.py): free-form scenarios (configs/transfer.yaml), replies scored by the judge.
+transfer:
+  modes: [last, pred, all]     # last prompt token only / every prediction (last prompt token + each generated token) / every token
+  strengths: [1.0, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 12.0]   # steering, multiples of the direction's natural size
+  random_at: [3.0, 6.0, 12.0]  # random-direction steering controls at these strengths
+  bleed: 2.0                   # this direction's +strength on the other concepts' prompts
+  n_random: 2
+  max_new_tokens: 160

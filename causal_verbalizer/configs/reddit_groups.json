@@ -1,0 +1,489 @@
+{
+ "A": {
+  "technology": [
+   "techsupport",
+   "pcmasterrace",
+   "GooglePixel",
+   "3Dprinting",
+   "Windows10",
+   "homelab",
+   "oneplus",
+   "Amd",
+   "linux4noobs",
+   "mac",
+   "computers",
+   "Xiaomi",
+   "amazonecho",
+   "arduino",
+   "privacy",
+   "DataHoarder"
+  ],
+  "computing_hw": [
+   "buildapc",
+   "MechanicalKeyboards",
+   "thinkpad",
+   "overclocking",
+   "MouseReview",
+   "buildapcforme",
+   "hometheater"
+  ],
+  "finance": [
+   "personalfinance",
+   "UKPersonalFinance",
+   "stocks",
+   "Frugal",
+   "tax",
+   "RealEstate"
+  ],
+  "law": [
+   "legaladvice",
+   "lawschooladmissions"
+  ],
+  "health": [
+   "AskDocs",
+   "medicalschool",
+   "Dentistry",
+   "keto",
+   "fasting",
+   "Fitness",
+   "xxfitness"
+  ],
+  "mental_health": [
+   "depression",
+   "mentalhealth",
+   "ADHD",
+   "bipolar",
+   "schizophrenia",
+   "SuicideWatch"
+  ],
+  "relationships": [
+   "relationships",
+   "dating_advice",
+   "BreakUps",
+   "Divorce",
+   "DeadBedrooms",
+   "JUSTNOMIL",
+   "datingoverthirty",
+   "polyamory"
+  ],
+  "family": [
+   "Parenting",
+   "beyondthebump",
+   "childfree"
+  ],
+  "politics": [
+   "The_Donald",
+   "JordanPeterson"
+  ],
+  "religion": [
+   "Christianity",
+   "exjw",
+   "Catholicism",
+   "exchristian"
+  ],
+  "history": [
+   "AskHistorians",
+   "WWII"
+  ],
+  "sports": [
+   "nba",
+   "soccer",
+   "baseball",
+   "minnesotavikings",
+   "lakers",
+   "golf",
+   "FantasyPL",
+   "Gunners",
+   "torontoraptors",
+   "NASCAR",
+   "CFB",
+   "SquaredCircle",
+   "bjj"
+  ],
+  "music": [
+   "Guitar",
+   "popheads",
+   "synthesizers",
+   "Bass",
+   "guitarpedals",
+   "radiohead",
+   "Eminem",
+   "brockhampton"
+  ],
+  "entertainment": [
+   "movies",
+   "television",
+   "gameofthrones",
+   "startrek",
+   "doctorwho",
+   "BravoRealHousewives",
+   "blackmirror",
+   "Screenwriting",
+   "DCcomics",
+   "anime",
+   "OnePiece",
+   "ShingekiNoKyojin",
+   "survivor"
+  ],
+  "books": [
+   "books",
+   "booksuggestions",
+   "whatsthatbook",
+   "asoiaf",
+   "worldbuilding"
+  ],
+  "gaming": [
+   "gaming",
+   "pokemon",
+   "NintendoSwitch",
+   "PS4",
+   "boardgames",
+   "Overwatch",
+   "Warframe",
+   "hearthstone",
+   "Fallout",
+   "StardewValley",
+   "factorio"
+  ],
+  "food": [
+   "Cooking",
+   "Coffee",
+   "tea"
+  ],
+  "travel": [
+   "travel",
+   "JapanTravel",
+   "flying"
+  ],
+  "vehicles": [
+   "cars",
+   "Cartalk",
+   "whatcarshouldIbuy",
+   "teslamotors",
+   "bicycling"
+  ],
+  "pets": [
+   "dogs",
+   "Dogtraining",
+   "Aquariums",
+   "Pets"
+  ],
+  "education": [
+   "ApplyingToCollege",
+   "Teachers",
+   "gradadmissions",
+   "UofT",
+   "UIUC",
+   "EngineeringStudents"
+  ],
+  "work_career": [
+   "jobs",
+   "careerguidance",
+   "sales",
+   "smallbusiness"
+  ],
+  "home_living": [
+   "HomeImprovement",
+   "Plumbing",
+   "HVAC",
+   "gardening",
+   "AskElectronics"
+  ],
+  "fashion_beauty": [
+   "SkincareAddiction",
+   "FashionReps",
+   "Watches",
+   "MakeupRehab",
+   "RepLadies",
+   "LushCosmetics",
+   "DesignerReps"
+  ],
+  "science": [
+   "askscience",
+   "AskScienceDiscussion"
+  ],
+  "mathematics": [
+   "math"
+  ],
+  "programming": [
+   "learnprogramming",
+   "Python",
+   "gamedev",
+   "Unity3D",
+   "excel",
+   "aws"
+  ],
+  "humor": [
+   "Jokes",
+   "Showerthoughts"
+  ],
+  "drugs": [
+   "Drugs",
+   "LSD",
+   "trees",
+   "MDMA",
+   "kratom",
+   "vaporents"
+  ],
+  "cryptocurrency": [
+   "CryptoCurrency",
+   "btc",
+   "dogecoin",
+   "Monero",
+   "BitcoinMarkets",
+   "altcoin",
+   "Stellar",
+   "garlicoin",
+   "vergecurrency",
+   "CoinBase",
+   "Tronix",
+   "EtherMining",
+   "MoneroMining"
+  ],
+  "lgbtq": [
+   "asktransgender",
+   "MtF",
+   "actuallesbians",
+   "bisexual"
+  ],
+  "firearms": [
+   "guns",
+   "Gunsforsale"
+  ],
+  "philosophy": [
+   "askphilosophy"
+  ]
+ },
+ "B": {
+  "technology": [
+   "iphone",
+   "sysadmin",
+   "apple",
+   "GalaxyS8",
+   "Surface",
+   "HomeNetworking",
+   "AndroidQuestions",
+   "raspberry_pi",
+   "firefox",
+   "googlehome",
+   "hackintosh",
+   "linuxquestions"
+  ],
+  "computing_hw": [
+   "Monitors",
+   "SuggestALaptop",
+   "Dell"
+  ],
+  "finance": [
+   "PersonalFinanceCanada",
+   "investing",
+   "financialindependence",
+   "Accounting",
+   "wallstreetbets",
+   "Insurance"
+  ],
+  "law": [
+   "LegalAdviceUK",
+   "LawSchool"
+  ],
+  "health": [
+   "premed",
+   "nursing",
+   "birthcontrol",
+   "loseit",
+   "intermittentfasting",
+   "bodyweightfitness",
+   "xxketo"
+  ],
+  "mental_health": [
+   "Anxiety",
+   "BPD",
+   "OCD",
+   "socialanxiety",
+   "aspergers",
+   "BPDlovedones"
+  ],
+  "relationships": [
+   "relationship_advice",
+   "Advice",
+   "LongDistance",
+   "ExNoContact",
+   "OkCupid",
+   "weddingplanning",
+   "adultery"
+  ],
+  "family": [
+   "BabyBumps",
+   "breakingmom",
+   "raisedbynarcissists"
+  ],
+  "politics": [
+   "ChapoTrapHouse",
+   "CapitalismVSocialism"
+  ],
+  "religion": [
+   "exmormon",
+   "atheism",
+   "Buddhism",
+   "exmuslim"
+  ],
+  "history": [
+   "history"
+  ],
+  "sports": [
+   "hockey",
+   "nfl",
+   "CollegeBasketball",
+   "eagles",
+   "tennis",
+   "formula1",
+   "LiverpoolFC",
+   "Cricket",
+   "Patriots",
+   "fantasybball",
+   "DynastyFF",
+   "WWE"
+  ],
+  "music": [
+   "WeAreTheMusicMakers",
+   "edmproduction",
+   "musictheory",
+   "piano",
+   "makinghiphop",
+   "Music",
+   "FrankOcean"
+  ],
+  "entertainment": [
+   "marvelstudios",
+   "netflix",
+   "DunderMifflin",
+   "StarWars",
+   "thebachelor",
+   "FlashTV",
+   "Filmmakers",
+   "MovieSuggestions",
+   "comicbooks",
+   "Naruto",
+   "manga",
+   "rupaulsdragrace",
+   "stevenuniverse"
+  ],
+  "books": [
+   "suggestmeabook",
+   "writing",
+   "HPfanfiction",
+   "Fantasy",
+   "harrypotter"
+  ],
+  "gaming": [
+   "Minecraft",
+   "nintendo",
+   "xboxone",
+   "Steam",
+   "DnD",
+   "leagueoflegends",
+   "DotA2",
+   "runescape",
+   "skyrim",
+   "Terraria",
+   "RimWorld"
+  ],
+  "food": [
+   "AskCulinary",
+   "Homebrewing"
+  ],
+  "travel": [
+   "solotravel",
+   "awardtravel",
+   "WaltDisneyWorld"
+  ],
+  "vehicles": [
+   "MechanicAdvice",
+   "motorcycles",
+   "subaru",
+   "askcarsales",
+   "MTB"
+  ],
+  "pets": [
+   "cats",
+   "puppy101",
+   "bettafish",
+   "AskVet"
+  ],
+  "education": [
+   "college",
+   "GradSchool",
+   "uwaterloo",
+   "rutgers",
+   "HomeworkHelp",
+   "Mcat"
+  ],
+  "work_career": [
+   "cscareerquestions",
+   "ITCareerQuestions",
+   "Entrepreneur",
+   "forhire"
+  ],
+  "home_living": [
+   "homeowners",
+   "electricians",
+   "woodworking",
+   "homeautomation"
+  ],
+  "fashion_beauty": [
+   "MakeupAddiction",
+   "Sneakers",
+   "wicked_edge",
+   "ABraThatFits",
+   "Repsneakers",
+   "makeupexchange"
+  ],
+  "science": [
+   "AskPhysics"
+  ],
+  "mathematics": [
+   "learnmath"
+  ],
+  "programming": [
+   "learnpython",
+   "webdev",
+   "AskProgramming",
+   "PowerShell",
+   "Wordpress"
+  ],
+  "humor": [
+   "copypasta"
+  ],
+  "drugs": [
+   "opiates",
+   "shrooms",
+   "researchchemicals",
+   "Psychonaut",
+   "Stims",
+   "DarkNetMarkets"
+  ],
+  "cryptocurrency": [
+   "Bitcoin",
+   "ethtrader",
+   "litecoin",
+   "ethereum",
+   "CryptoMarkets",
+   "Ripple",
+   "binance",
+   "Iota",
+   "BitcoinBeginners",
+   "kucoin",
+   "NiceHash",
+   "gpumining"
+  ],
+  "lgbtq": [
+   "ftm",
+   "askgaybros",
+   "LGBTeens",
+   "lgbt"
+  ],
+  "firearms": [
+   "ar15"
+  ]
+ }
+}

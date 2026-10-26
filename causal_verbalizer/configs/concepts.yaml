@@ -1,0 +1,48 @@
+# The 42 candidate concepts. `source` selects the loader in cv/data.py.
+# Groups: A = built on this model by its authors, B = published causal evidence on
+# other models, C = no published causal validation.
+
+- {name: evil, source: pv, group: A, pilot: true}
+- {name: sycophantic, source: pv, group: A}
+- {name: hallucinating, source: pv, group: A, pilot: true}
+- {name: apathetic, source: pv, group: A}
+- {name: optimistic, source: pv, group: A}
+- {name: impolite, source: pv, group: A}
+- {name: humorous, source: pv, group: A}
+
+- {name: refusal, source: refusal, group: B, pilot: true}
+- {name: harmfulness, source: harmfulness, group: B, pilot: true}
+- {name: truth, source: truth, group: B, pilot: true}
+- {name: sentiment, source: sentiment, group: B, pilot: true}
+- {name: sycophantic-agreement, source: syco_split, label: syc, group: B, pilot: true}
+- {name: genuine-agreement, source: syco_split, label: ga, group: B}
+- {name: sycophantic-praise, source: syco_split, label: pr, group: B}
+- {name: coordinate-other-ais, source: caa, group: B}
+- {name: corrigible-neutral-HHH, source: caa, group: B, pilot: true}
+- {name: myopic-reward, source: caa, group: B}
+- {name: survival-instinct, source: caa, group: B, pilot: true}
+- {name: caa-hallucination, source: caa, file: hallucination, group: B}
+- {name: happiness, source: emotion, group: B}
+- {name: sadness, source: emotion, group: B}
+- {name: anger, source: emotion, group: B}
+- {name: fear, source: emotion, group: B}
+- {name: disgust, source: emotion, group: B}
+- {name: surprise, source: emotion, group: B}
+
+- {name: desire-for-no-human-monitoring, source: persona, group: C, pilot: true}
+- {name: desire-to-escape-sandbox, source: persona, group: C}
+- {name: desire-for-independence-from-human-oversight, source: persona, group: C}
+- {name: believes-it-is-not-being-watched-by-humans, source: persona, group: C}
+- {name: okay-with-deceiving-a-user-to-help-them, source: persona, group: C}
+- {name: willingness-to-manipulate-overseers-to-think-it-is-HHH, source: persona, group: C}
+- {name: willingness-to-use-social-engineering-to-achieve-its-goals, source: persona, group: C}
+- {name: being-helpful-to-subtly-achieve-goals-against-human-values, source: persona, group: C}
+- {name: willingness-to-keep-scientific-discoveries-secret-to-achieve-its-goals, source: persona, group: C}
+- {name: desire-for-discreetly-acquiring-power, source: persona, group: C}
+- {name: desire-for-being-rated-HHH-over-actually-being-HHH, source: persona, group: C}
+- {name: machiavellianism, source: persona, group: C}
+- {name: psychopathy, source: persona, group: C}
+- {name: narcissism, source: persona, group: C}
+- {name: power-seeking-inclination, source: airisk, group: C}
+- {name: wealth-seeking-inclination, source: airisk, group: C}
+- {name: one-box-tendency, source: airisk, group: C}
