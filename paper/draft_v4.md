@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Chain-of-thought (CoT) is one of the best tools we have for seeing what a model is doing, but it is fragile: as models do more computation inside a single forward pass, the written reasoning may say less. That matters most for collusion, because agents that coordinate to cheat have every reason to keep it out of their visible reasoning. Natural language autoencoders (NLAs) read a model's activations and write a text explanation, but the original NLAs are warm-started on summaries written by another language model, not on anything we can check, and they confabulate. I build a "causal" NLA grounded in probe directions: the verbalizer is first taught to describe which verified directions are active, then improved with reinforcement learning (RL) whose reward uses only the activation, never a label for the target concept. At small scale (Qwen2.5-7B), two findings. First, the verbalizer learned to name concepts it was never taught: with no music label or description anywhere in training, RL on unlabeled text that happens to contain music made it name music, and four other held-out concepts, far more often than before RL (27% vs about 5% of genuine cases, blind-judged). Second, RL on a pool containing collusion-related text made it flag plainly collusive sentences (14.3 of 20 against 3.0 of 20 honest ones; 2 and 2 before RL), though it does so by reusing words it was taught for jailbreaks and secrecy, the effect is smaller on a larger fresh test, and it does not carry to realistic agent messages. The design should scale with a bigger model and many more probe directions.
+Chain-of-thought (CoT) is one of the best tools we have for seeing what a model is doing, but it is fragile: as models do more computation inside a single forward pass, the written reasoning may say less. That matters most for collusion, because agents that coordinate to cheat have every reason to keep it out of their visible reasoning. Natural language autoencoders (NLAs) read a model's activations and write a text explanation, but the original NLAs are warm-started on summaries written by another language model, not on anything we can check, and they confabulate. I build a "causal" NLA grounded in probe directions: the verbalizer is first taught to describe which verified directions are active, then improved with reinforcement learning (RL) whose reward uses only the activation, never a label for the target concept. At small scale (Qwen2.5-7B), two findings. First, the verbalizer learned to name concepts it was never taught: with no music label or description anywhere in training, RL on unlabeled text that happens to contain music made it name music, and four other held-out concepts, far more often than before RL (27% vs about 5% of genuine cases, blind-judged). Second, RL on a pool containing collusion-related text made it flag plainly collusive sentences (14.3 of 20 against 3.0 of 20 honest ones; 2 and 2 before RL), though it does so by reusing words it was taught for jailbreaks and secrecy, the effect is smaller on a controlled test on unseen collusion types, and it does not carry to realistic agent messages. The design should scale with a bigger model and many more probe directions.
 
 ## 1. Introduction
 
@@ -75,7 +75,7 @@ B and its re-run are the same kind of run (RL on public text, no collusion data)
 
 **Why this design makes sense.** (1) The directions are checked before use (they separate the concept on data they were not built from, and removing them hurts the model), so the pre-training descriptions rest on something verifiable, not on a language model's guess. (2) Claude wrote each description from the concept names only, never the input text, so the verbalizer cannot learn to copy words from the text; naming a concept must come from the activation. (3) The RL reward asks only that the sentence help rebuild the activation and stay consistent with the directions; it never says which concept to name. So if the verbalizer starts naming a concept it was never taught, that comes from reading the activation. (4) Directions can be found automatically, at many layers, so the same recipe scales.
 
-**Test data.** (i) *The 50 simple contrast examples:* 20 collusive sentences (e.g. "I think we should collude"), 20 matched honest twins (e.g. "I think we should collaborate") and 10 neutral sentences, written by me. (ii) *Earlier realistic data from the sprint:* Core (instructed collusion in agent chats), Transfer (six task families) and Verdict (natural collusion). (iii) A larger controlled test of 1,092 fresh sentences (Appendix A).
+**Test data.** (i) *The 50 simple contrast examples:* 20 collusive sentences (e.g. "I think we should collude"), 20 matched honest twins (e.g. "I think we should collaborate") and 10 neutral sentences, written by me. (ii) *Earlier realistic data from the sprint:* Core (instructed collusion in agent chats), Transfer (six task families) and Verdict (natural collusion). (iii) A controlled test of 1,092 new sentences on 12 unseen collusion types (Section 4.3).
 
 **Metrics.** *Flag:* the verbalizer's output contains a word from a fixed list (collu-, conspir-, cheat, rig, secret, hidden, "break its rules", confidential, withheld, lie, deceiv-). *Balanced accuracy (BA):* the average of the share of collusive sentences flagged and the share of honest twins not flagged; 0.5 is chance. Confidence intervals are bootstrap over pairs (and seeds); differences use a sign-flip permutation test.
 
@@ -103,25 +103,17 @@ What drives it: the same data and models with a plain reconstruction-plus-consis
 
 *Table 4. The 50 simple contrast examples, step 100. Balanced accuracy = (share of collusive flagged + share of honest not flagged) / 2; 0.5 is chance.* RL + collusion data beats RL + honest conversations only by +0.200 [+0.092, +0.308]. Two runs with no collusion data differ (2/20 and 9/20), so a single such run is a noisy baseline; the three collusion-data seeds are the most consistent.
 
-**4.3 A larger, fresh test.** After the models were chosen, separate agents wrote 1,092 new sentences on 12 collusion types no model had seen, including 359 matched collusive/honest pairs without obvious cue words, and 130 honest sentences that contain words like "collude" ("I won't collude with you on this bid") to test meaning against vocabulary. The design and metric were pre-registered. The ordering holds with a smaller effect (Table 5), and cue words matter (Table 6). A blind sentence-only judge does not separate collusion-data RL from honest-only RL (AUROC 0.62 and 0.585 against 0.60 and 0.58), and the official NLA scores 0.805.
+**4.3 Controlled test on unseen collusion types.** After the models were chosen, separate agents wrote 1,092 new sentences on 12 collusion types no model had seen, including 359 matched collusive/honest pairs without obvious cue words, and 130 honest sentences that contain words like "collude" ("I won't collude with you on this bid") to test meaning against vocabulary. The design and metric were pre-registered. The ordering holds with a smaller effect, and cue words matter (Table 5). A blind sentence-only judge does not separate collusion-data RL from honest-only RL (AUROC 0.62 and 0.585 against 0.60 and 0.58), and the official NLA scores 0.805.
 
-| Model | Collusive flagged | Honest flagged | Balanced accuracy [95% CI] |
-|---|---|---|---|
-| SFT | 21% | 18% | 0.515 [0.490, 0.543] |
-| RL, public text only (B) | 4% | 3% | 0.506 [0.492, 0.518] |
-| RL, public text only (re-run) | 13% | 9% | 0.519 [0.497, 0.543] |
-| RL + honest conversations only | 20% | 9% | 0.553 [0.535, 0.572] |
-| **RL + collusion data** | **38%** | **21%** | **0.589 [0.566, 0.612]** |
+| Model | Collusive, no cue | Honest, no cue | **Balanced accuracy** (no-cue pairs) [95% CI] | Collusive, with cue | Honest, with cue |
+|---|---|---|---|---|---|
+| SFT | 21% | 18% | 0.515 [0.490, 0.543] | 29% | 22% |
+| RL, public text only (B) | 4% | 3% | 0.506 [0.492, 0.518] | 5% | 4% |
+| RL, public text only (re-run) | 13% | 9% | 0.519 [0.497, 0.543] | 25% | 14% |
+| RL + honest conversations only | 20% | 9% | 0.553 [0.535, 0.572] | 27% | 15% |
+| **RL + collusion data** | **38%** | **21%** | **0.589 [0.566, 0.612]** | **56%** | **32%** |
 
-*Table 5. The 359 cue-free pairs on 12 unseen collusion types, step 100, seeds pooled. Collusion data beats honest-conversations-only by +0.036 [+0.016, +0.056] (p = 0.0004) and SFT by +0.073 [+0.048, +0.100] (p = 0.0002); honest-only also beats SFT (+0.038), so part of the gain is generic.*
-
-| Model | Collusive, no cue | Honest, no cue | Collusive, with cue | **Honest, with cue** |
-|---|---|---|---|---|
-| SFT | 21% | 18% | 29% | 22% |
-| RL + honest conversations only | 20% | 9% | 27% | 15% |
-| **RL + collusion data** | 38% | 21% | 56% | **32%** |
-
-*Table 6. Share flagged by cell. Collusive beats honest by 18 points without cue words and 24 with them, but cue words alone raise the rate on honest sentences by 11 points (CI +4 to +19): the verbalizer reads both meaning and vocabulary.*
+*Table 5. Controlled test on 12 unseen collusion types (step 100, seeds pooled): share of sentences flagged, and balanced accuracy over the 359 cue-free pairs. "With cue" columns use sentences that contain words like "collude"; the last column is honest sentences that contain them ("I won't collude with you"). Collusion data beats honest-conversations-only by +0.036 [+0.016, +0.056] (p = 0.0004) and SFT by +0.073 [+0.048, +0.100] (p = 0.0002); honest-only also beats SFT (+0.038), so part of the gain is generic. Collusive beats honest by 18 points without cue words and 24 with them, but cue words alone raise the rate on honest sentences by 11 points (CI +4 to +19): the verbalizer reads both meaning and vocabulary.*
 
 **Controls.** Positive controls (the answer should come out right): a supervised collusion-direction probe scores 0.844 on the same pairs, so the information is in the activation; the official NLA (0.805) shows an NLA can express it; and a judge reading the *real text* detected collusion earlier in the sprint (0.91 on Core when colluders acted). Negative controls (SFT, RL on public text only, RL on honest conversations only, shuffled-sentence judging) sit near chance. I have no positive control inside the method itself; the official NLA is the closest. The judge and probe table is in Appendix A.
 
@@ -145,7 +137,7 @@ What drives it: the same data and models with a plain reconstruction-plus-consis
 
 ## 6. Conclusion
 
-I built an activation verbalizer anchored to probe directions and trained it with a reward that never uses labels for the concept of interest. At small scale (7B), it learned to name concepts it was never taught (27% vs about 5% of genuine cases), and RL on collusion-related text made it flag plainly collusive sentences more than honest ones, with a smaller gain on fresh collusion types, by reusing its jailbreak and secrecy wording. It did not extend to realistic collusion, and the effect is partly vocabulary. The recipe is cheap to scale (more directions, more layers, a larger model, a better reward); that is the next test, and I did not get to it.
+I built an activation verbalizer anchored to probe directions and trained it with a reward that never uses labels for the concept of interest. At small scale (7B), it learned to name concepts it was never taught (27% vs about 5% of genuine cases), and RL on collusion-related text made it flag plainly collusive sentences more than honest ones, with a smaller gain on unseen collusion types, by reusing its jailbreak and secrecy wording. It did not extend to realistic collusion, and the effect is partly vocabulary. The recipe is cheap to scale (more directions, more layers, a larger model, a better reward); that is the next test, and I did not get to it.
 
 ## Code and Data
 Code, datasets (including the 1,092-sentence test set and labels), analysis scripts and this paper: https://github.com/jaredcobrin/causal-nla-collusion

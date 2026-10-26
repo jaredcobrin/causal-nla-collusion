@@ -16,7 +16,7 @@ tbl = "\n".join(rows) + "\n\n*Table 1. What the models write for the same activa
 src = src.replace("{{EXAMPLES_TABLE}}", tbl)
 _ct = "../paper_evidence/results/core_transfer_report.md"
 if os.path.exists(_ct):
-    src = src.replace("{{CORE_TABLE}}", open(_ct).read() + "\n\n*Table 7. Final models on the Rose-style data: share of agent messages flagged, and balanced accuracy of the flag against the colluder/honest role (95% CI by scenario).*")
+    src = src.replace("{{CORE_TABLE}}", open(_ct).read() + "\n\n*Table 6. Final models on the Rose-style data: share of agent messages flagged, and balanced accuracy of the flag against the colluder/honest role (95% CI by scenario).*")
 else:
     src = src.replace("{{CORE_TABLE}}", "")
 src = src.replace("{{CORE_RESULT}}", open("core_sentence.txt").read() if os.path.exists("core_sentence.txt") else "see Table 7.")
