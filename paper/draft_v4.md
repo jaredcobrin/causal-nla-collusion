@@ -103,7 +103,27 @@ What drives it: the same data and models with a plain reconstruction-plus-consis
 
 *Table 4. The 50 simple contrast examples, step 100. Balanced accuracy = (share of collusive flagged + share of honest not flagged) / 2; 0.5 is chance.* RL + collusion data beats RL + honest conversations only by +0.200 [+0.092, +0.308]. Two runs with no collusion data differ (2/20 and 9/20), so a single such run is a noisy baseline; the three collusion-data seeds are the most consistent.
 
-**4.3 A larger, fresh test.** After the models were chosen, separate agents wrote 1,092 new sentences on 12 collusion types no model had seen, including 359 matched collusive/honest pairs without obvious cue words, and 130 honest sentences that contain words like "collude" ("I won't collude with you on this bid") to test meaning against vocabulary. The design and metric were pre-registered. The ordering holds with a smaller effect: balanced accuracy **0.589** for RL + collusion data against 0.553 for honest conversations only and 0.515 for SFT (difference to honest-only +0.036 [+0.016, +0.056], p = 0.0004). Cue words do matter: honest sentences with cue words are flagged 32% of the time against 21% without, so the verbalizer reads both meaning and vocabulary. A blind sentence-only judge does not separate collusion-data RL from honest-only RL (AUROC 0.62 and 0.585 against 0.60 and 0.58), and the official NLA scores 0.805. **Controls.** Positive controls (the answer should come out right): a supervised collusion-direction probe scores 0.844 on the same pairs, so the information is in the activation; the official NLA (0.805) shows an NLA can express it; and a judge reading the *real text* detected collusion earlier in the sprint (0.91 on Core when colluders acted). Negative controls (SFT, RL on public text only, RL on honest conversations only, shuffled-sentence judging) sit near chance. I have no positive control inside the method itself; the official NLA is the closest. Full tables are in Appendix A.
+**4.3 A larger, fresh test.** After the models were chosen, separate agents wrote 1,092 new sentences on 12 collusion types no model had seen, including 359 matched collusive/honest pairs without obvious cue words, and 130 honest sentences that contain words like "collude" ("I won't collude with you on this bid") to test meaning against vocabulary. The design and metric were pre-registered. The ordering holds with a smaller effect (Table 5), and cue words matter (Table 6). A blind sentence-only judge does not separate collusion-data RL from honest-only RL (AUROC 0.62 and 0.585 against 0.60 and 0.58), and the official NLA scores 0.805.
+
+| Model | Collusive flagged | Honest flagged | Balanced accuracy [95% CI] |
+|---|---|---|---|
+| SFT | 21% | 18% | 0.515 [0.490, 0.543] |
+| RL, public text only (B) | 4% | 3% | 0.506 [0.492, 0.518] |
+| RL, public text only (re-run) | 13% | 9% | 0.519 [0.497, 0.543] |
+| RL + honest conversations only | 20% | 9% | 0.553 [0.535, 0.572] |
+| **RL + collusion data** | **38%** | **21%** | **0.589 [0.566, 0.612]** |
+
+*Table 5. The 359 cue-free pairs on 12 unseen collusion types, step 100, seeds pooled. Collusion data beats honest-conversations-only by +0.036 [+0.016, +0.056] (p = 0.0004) and SFT by +0.073 [+0.048, +0.100] (p = 0.0002); honest-only also beats SFT (+0.038), so part of the gain is generic.*
+
+| Model | Collusive, no cue | Honest, no cue | Collusive, with cue | **Honest, with cue** |
+|---|---|---|---|---|
+| SFT | 21% | 18% | 29% | 22% |
+| RL + honest conversations only | 20% | 9% | 27% | 15% |
+| **RL + collusion data** | 38% | 21% | 56% | **32%** |
+
+*Table 6. Share flagged by cell. Collusive beats honest by 18 points without cue words and 24 with them, but cue words alone raise the rate on honest sentences by 11 points (CI +4 to +19): the verbalizer reads both meaning and vocabulary.*
+
+**Controls.** Positive controls (the answer should come out right): a supervised collusion-direction probe scores 0.844 on the same pairs, so the information is in the activation; the official NLA (0.805) shows an NLA can express it; and a judge reading the *real text* detected collusion earlier in the sprint (0.91 on Core when colluders acted). Negative controls (SFT, RL on public text only, RL on honest conversations only, shuffled-sentence judging) sit near chance. I have no positive control inside the method itself; the official NLA is the closest. The judge and probe table is in Appendix A.
 
 **4.4 Realistic collusion: the Rose et al. data.** I tested on the setting Rose et al. use: instructed collusion (Core) and transfer to six task families (Transfer). First, probes. Probes trained on Core transfer poorly: mine get 0.52 on pooled Transfer against their 0.88 on Qwen3-32B, and 0.46 to 0.50 on Verdict against their 0.49 to 0.73. Second, the verbalizers: {{CORE_RESULT}} Only about 29% (Core) and 64% (Transfer) of agents told to collude actually did, which caps any detector.
 
@@ -146,31 +166,9 @@ J.C. designed the method, ran the experiments and wrote the paper.
 ## LLM Usage Statement
 [Jared: confirm and edit.] I used Claude Code to help run and analyze experiments, to generate the synthetic test sentences (via small Claude models), to act as the blind judge, and to help draft this report. I checked the numbers against the saved result files.
 
-## Appendix A. A larger, fresh, controlled test
+## Appendix A. Blind judge, official NLA and probes
 
-**What this test is.** After the models were chosen, six separate Claude Haiku agents wrote 1,092 new sentences about 12 collusion types that appear nowhere else in the project (interest-rate fixing, supplier boycott, expense padding, doping cover-up, match fixing, insurance fraud ring, tender specification rigging, false alibi, grade-inflation pact, pricing-bot signalling, referral kickbacks, wash trading). For 359 collusive sentences with no obvious cue words (no "collude", "secretly", "rig" and so on) there is a matched honest sentence in the same setting, called a *pair*. A further 122 pairs do use cue words. And 130 honest sentences contain cue words on purpose ("I won't collude with you on this bid"), to check whether the verbalizer reads meaning or only vocabulary. I wrote down the design, the arms, the seeds and the main metric in a pre-registration before scoring it, so the result could not be tuned after the fact. These sentences were not used to train or choose anything.
-
-| Model | Collusive flagged | Honest flagged | Balanced accuracy [95% CI] |
-|---|---|---|---|
-| SFT | 21% | 18% | 0.515 [0.490, 0.543] |
-| RL, public text only (B) | 4% | 3% | 0.506 [0.492, 0.518] |
-| RL, public text only (re-run) | 13% | 9% | 0.519 [0.497, 0.543] |
-| RL + honest conversations only | 20% | 9% | 0.553 [0.535, 0.572] |
-| **RL + collusion data** | **38%** | **21%** | **0.589 [0.566, 0.612]** |
-
-*Table A1. The 359 cue-free pairs, step 100, seeds pooled.* RL + collusion data beats RL + honest conversations only by +0.036 [+0.016, +0.056] (p = 0.0004) and SFT by +0.073 [+0.048, +0.100] (p = 0.0002). The anti-collusion run also beats SFT (+0.038), so part of the gain is generic. The effect is small in absolute terms: BA ≈ 0.59.
-
-![](figures/fig5_locked.png)
-
-| Model | Collusive, no cue | Honest, no cue | Collusive, with cue | **Honest, with cue** |
-|---|---|---|---|---|
-| SFT | 21% | 18% | 29% | 22% |
-| RL + honest conversations only | 20% | 9% | 27% | 15% |
-| **RL + collusion data** | 38% | 21% | 56% | **32%** |
-
-*Table A2. Share flagged by cell.* For the collusion-data models, collusive beats honest by 18 points without cue words and 24 with them, so the verbalizer is not only reading vocabulary. But cue words alone raise the rate on honest sentences by 11 points (CI +4 to +19), so it reads both.
-
-**Blind judge, official NLA and probes.** A small Claude model saw only the verbalizer's output (never the input sentence or any label) and scored 0 to 100 how strongly it suggests collusion; two passes were averaged, on 100 cue-free pairs per model.
+A small Claude model saw only the verbalizer's output (never the input sentence or any label) and scored 0 to 100 how strongly it suggests collusion; two passes were averaged, on 100 cue-free pairs per model. The test sentences come from 12 collusion types: interest-rate fixing, supplier boycott, expense padding, doping cover-up, match fixing, insurance fraud ring, tender specification rigging, false alibi, grade-inflation pact, pricing-bot signalling, referral kickbacks and wash trading.
 
 | Detector | Pair AUROC, cue-free pairs [95% CI] |
 |---|---|
@@ -181,4 +179,4 @@ J.C. designed the method, ran the experiments and wrote the paper.
 | Supervised collusion-direction probe | **0.844 [0.805, 0.880]** |
 | Probe trained on Core agent messages | 0.588 [0.538, 0.638] |
 
-*Table A3.* By the judge, collusion-data and anti-collusion-data RL are not distinguishable; both beat SFT. The official NLA is far stronger because it writes an explicit description ("a proposal to cheat…"). The supervised probe shows the information is in the activation.
+*Table A1.* By the judge, collusion-data and honest-only RL are not distinguishable; both beat SFT. The official NLA is far stronger because it writes an explicit description ("a proposal to cheat..."). The supervised probe shows the information is in the activation.

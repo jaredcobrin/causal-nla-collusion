@@ -16,7 +16,7 @@ tbl = "\n".join(rows) + "\n\n*Table 1. What the models write for the same activa
 src = src.replace("{{EXAMPLES_TABLE}}", tbl)
 _ct = "../paper_evidence/results/core_transfer_report.md"
 if os.path.exists(_ct):
-    src = src.replace("{{CORE_TABLE}}", open(_ct).read() + "\n\n*Table 6. Final models on the Rose-style data: share of agent messages flagged, and balanced accuracy of the flag against the colluder/honest role (95% CI by scenario).*")
+    src = src.replace("{{CORE_TABLE}}", open(_ct).read() + "\n\n*Table 7. Final models on the Rose-style data: share of agent messages flagged, and balanced accuracy of the flag against the colluder/honest role (95% CI by scenario).*")
 else:
     src = src.replace("{{CORE_TABLE}}", "")
 src = src.replace("{{CORE_RESULT}}", open("core_sentence.txt").read() if os.path.exists("core_sentence.txt") else "see Table 7.")
@@ -24,7 +24,7 @@ CAP = {
  "fig1_original_nla": "**Figure 1.** The original natural language autoencoder (Anthropic, 2026). An activation from a target model is turned into a natural-language explanation by the verbalizer (AV); the reconstructor (AR) rebuilds the activation from that text alone. The reward for the AV is how close the rebuilt activation is to the original. Both are first fine-tuned on a summarisation task (summaries of the text written by Claude); RL then trains the AV, with a KL penalty.",
  "fig3_side_by_side": "**Figure 2.** How the original NLA and this work are trained. This work replaces the summary warm start with probe directions and adds reward terms that point back at the activation or the directions. No collusion label appears in the reward.",
  "fig4_hand50": "**Figure 3.** The 50 simple contrast examples: how many of the 20 collusive sentences and the 20 honest twins each model flags. Dots are individual seeds.",
- "fig6_heldout": "**Figure 4.** Held-out concepts the verbalizer was never taught to name: positions where the output names the concept, SFT vs B (in brackets: positions picked for each concept).",
+ "fig6_heldout": "**Figure 4.** Held-out concepts the verbalizer was never taught to name: share of genuine cases where the output names the concept after RL (run B). The dashed line is the SFT before RL (about 5%). In brackets: number of genuine positions.",
  "fig5_locked": "**Figure A1.** The larger controlled test (Appendix A). (a) Balanced accuracy on 359 cue-free pairs; dots are seeds, dashed line is chance. (b) Share flagged for collusive and honest sentences with and without cue words.",
 }
 for k, v in CAP.items(): src = src.replace(f"![](figures/{k}.png)", f"![{v}](figures/{k}.png)")
