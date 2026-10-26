@@ -42,7 +42,7 @@ Chain-of-thought (CoT) is one of the best tools we have for seeing what a model 
 
 **Provenance.** I started this project on 12 October, before the sprint, as a side experiment with no connection to collusion: a general test of whether an activation verbalizer can be grounded in verified probe directions. Partway through I realised it applied to collusion monitoring. The verbalizer, the probe directions and the held-out-concept run in Section 4.1 come from that earlier work; the collusion experiments (Sections 4.2 to 4.4 and the appendices) were run during the sprint.
 
-**Model and activations.** Qwen2.5-7B-Instruct. An activation is the hidden state after block 20 (layer 20) at the last token of the last 192 tokens of raw text. The verbalizer is a LoRA adapter that takes this activation, written into the residual stream at a placeholder token in a fixed prompt ("Describe what the model is thinking about at this position."), and writes a single short sentence (the original NLA writes a longer free-form explanation). The reconstructor (AR) is Qwen with a LoRA adapter and a linear head on the last token that predicts the (centred) activation from the text. I used a 7B model because a larger one was too expensive for the sprint; I expect the signal to be stronger on a larger model but did not test this.
+**Model and activations.** Qwen2.5-7B-Instruct. An activation is the hidden state after block 20 (layer 20) at the last token of the last 192 tokens of raw text. The verbalizer is a LoRA adapter that takes this activation, written into the residual stream at a placeholder token in a fixed prompt ("Describe what the model is thinking about at this position."), and writes a single short sentence (the original NLA writes a longer free-form explanation). The reconstructor (AR) is Qwen with a LoRA adapter and a linear head on the last token that predicts the (centred) activation from the text. I used a small 7B model because I do not have the budget for a larger one: this is a self-funded project and the compute for a bigger model was beyond what I could pay for. I expect the signal to be stronger on a larger model but could not test this.
 
 **Finding the directions (the "causal" part).** A concept's direction is the mean layer-20 activation on texts that contain the concept minus the mean on texts that do not (a logistic-regression direction for a few concepts), computed on the training split only, from at least two independent datasets per concept (public datasets and some short texts written for the purpose). A direction is *approved* only if, under a rule fixed in advance, (i) it separates the concept from other text on a dataset it was not built from (leave-one-dataset-out AUROC averaging at least 0.85 and no worse than 0.75), and (ii) removing it from the activation (mean ablation) raises the model's loss on that concept's texts by more than removing matched other texts or random directions (confidence interval above zero). 53 directions passed. I trained on 34 of them, held out 6 (music, law, mental health, vehicles, hedging, German) so the verbalizer is never taught to name them, and left 13 unused as a weaker secondary test.
 
@@ -131,7 +131,7 @@ What drives it: the same data and models with a plain reconstruction-plus-consis
 
 ### Limitations
 
-- *Scale and seeds.* 7B model only; one seed for the music result; large seed-to-seed variation in the collusion runs; the checkpoint step was chosen on one seed.
+- *Scale and seeds.* 7B model only, because of budget; one seed for the music result; large seed-to-seed variation in the collusion runs; the checkpoint step was chosen on one seed.
 - *Not realistic collusion.* What the verbalizer separated were short, LLM-written statements like "let's collude"; on realistic agent messages it stayed at chance (Section 4.4).
 - *Measurement.* A crude keyword flag, one generator family for the test sentences, and a blind judge that did not confirm the collusion-data edge over honest-only RL; the effect follows cue words as well as meaning.
 - *Assumptions.* "Label-free" means no labels in the reward, not no choices in the data: I chose which text went into the pool. I treat the jailbreak and secrecy wording as "saying collusion", which is an assumption (Table 2). The honest-conversations-only run is not a clean null, because its transcripts come from the same scenarios.
@@ -146,9 +146,6 @@ I built an activation verbalizer anchored to probe directions and trained it wit
 
 ## Code and Data
 Code, datasets (including the 1,092-sentence test set and labels), analysis scripts and this paper: https://github.com/jaredcobrin/causal-nla-collusion
-
-## Author Contributions
-J.C. designed the method, ran the experiments and wrote the paper.
 
 ## References
 1. Korbak, T., et al. (2025). *Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety.* arXiv.
