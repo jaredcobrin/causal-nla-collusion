@@ -53,7 +53,7 @@ h2 { font-size: 13.5pt; margin: 13pt 0 4pt 0; page-break-after: avoid; } h3 { fo
 p { margin: 0 0 5pt 0; text-align: justify; } li { margin-bottom: 2pt; text-align: justify; }
 table { border-collapse: collapse; margin: 4pt auto 5pt auto; font-size: 8.4pt; line-height:1.18; page-break-inside: avoid; }
 th, td { border-top: 0.6pt solid #888; border-bottom: 0.6pt solid #888; padding: 2pt 6pt; text-align: left; } th { background:#f1f1f1; border-top: 1.2pt solid #000; }
-figure { margin: 6pt 0; page-break-inside: avoid; } figcaption { font-size: 8.6pt; font-style: normal; text-align: justify; margin: 2pt 18pt 0 18pt; line-height:1.2; } img { display:block; margin: 4pt auto; max-width: 100%; } figure:has(img[src*='fig1']) img { width: 78%; } figure:has(img[src*='fig3']) img { width: 66%; } figure:has(img[src*='fig4']) img, figure:has(img[src*='fig6']) img { width: 54%; } figure:has(img[src*='fig5']) img { width: 66%; }
+figure { margin: 6pt 0; page-break-inside: avoid; } figcaption { font-size: 8.6pt; font-style: normal; text-align: justify; margin: 2pt 18pt 0 18pt; line-height:1.2; } img { display:block; margin: 4pt auto; max-width: 100%; } figure:has(img[src*='fig1']) img { width: 70%; } figure:has(img[src*='fig3']) img { width: 58%; } figure:has(img[src*='fig4']) img, figure:has(img[src*='fig6']) img { width: 50%; } figure:has(img[src*='fig5']) img { width: 66%; }
 mark { background: #fff0a0; } .fn { font-size: 8.5pt; color:#333; border-top: 0.5pt solid #999; margin-top: 8pt; padding-top: 3pt; }
 code { font-size: 8.6pt; }
 """
