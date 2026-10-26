@@ -5,7 +5,7 @@ Code, data and paper for a small-scale test of whether a natural language autoen
 Author: Jared Cobrin. Submitted to the Apart Research AI Collusion Research Sprint, October 2026. The paper is `paper/paper_draft.pdf` (source `paper/draft_v4.md`).
 
 ## What is in here
-- `causal_verbalizer/` — the verbalizer/reconstructor/RL code (`cv/`), configs, the 53 approved concept directions and the pre-training descriptions (`data/av_data/`), the contrast texts the directions were built from, and the project log (`docs/`). Built before the sprint (log dates start 2026-10-12); it is the foundation the sprint work uses.
+- `causal_verbalizer/` — the verbalizer/reconstructor/RL code (`cv/`), configs, the 53 approved concept directions and the pre-training descriptions (`data/av_data/`), the contrast texts the directions were built from, and the project log (`docs/`). Started on 2026-10-12, before the sprint, as a side experiment unrelated to collusion (a general test of grounding a verbalizer in verified probe directions); during the sprint I realised it applied to collusion monitoring. It is the foundation the sprint work uses.
 - `sprint/` — work done for the sprint (2026-10-23 to 10-26): the RL arms (`rl/`), data preparation (`data_prep/`), the datasets (`data/`: blatant collusion transcripts, agent-written short collusive/honest sentences, the 1,092-sentence locked test set, labels), evaluation and analysis scripts (`evaluation/`), the official-NLA reference runs (`nla_reference/`), the pre-registration (`PREREG.md`), and result reports (`results/`, `RESULTS.md`).
 - `paper/` — figures, figure and PDF build scripts, the paper source and PDF.
 
